@@ -1,13 +1,13 @@
-print("Gamemode started to load...")
+print("Game mode started to load...")
 
 -- Called when LoD starts
-function lod:InitGameMode()
-    print('Legends of dota started!')
+function main:InitGameMode()
+    print('Main started!')
     GameRules:GetGameModeEntity():SetThink('OnThink', self, 'GlobalThink', 0.25)
 end
 
 -- Run to handle
-function lod:OnThink()
+function main:OnThink()
     -- Decide what to do
     if currentStage == STAGE_WAITING then
 		-- STUFF
@@ -42,4 +42,4 @@ function lod:OnThink()
     print('WARNING: Unknown stage: '+currentStage)
 end
 
-print('Gamemode has loaded!')
+print('Game mode has loaded!')
