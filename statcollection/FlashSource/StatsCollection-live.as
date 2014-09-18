@@ -16,7 +16,7 @@ package  {
 		var json:String;
 		
 		var SERVER_ADDRESS:String = "176.31.182.87";
-		var SERVER_PORT:Number = 4444;
+		var SERVER_PORT:Number = 4445;
 		
         public function onLoaded() : void {
 			trace("##Loading StatsCollection by SinZ");
