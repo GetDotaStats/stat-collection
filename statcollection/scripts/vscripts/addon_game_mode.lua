@@ -4,11 +4,7 @@ statcollection.addStats({
 	modID = 'XXXXXXXXXXXXXXXXXXX' --GET THIS FROM http://getdotastats.com/#d2mods__my_mods
 })
 
--- Create the game mode when we activate
-function Activate()
-    GameRules.main = main()
-    GameRules.main:InitGameMode()
-end
+print( "Example stat collection game mode loaded." )
 
 if YourGamemode == nil then
     YourGamemode = class({})
