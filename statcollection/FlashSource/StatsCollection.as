@@ -6,6 +6,8 @@ package  {
     import flash.events.Event;
     import flash.events.ProgressEvent;
     import flash.events.IOErrorEvent;
+    import flash.utils.Timer;
+    import flash.events.TimerEvent;
 
     public class StatsCollection extends MovieClip {
         public var gameAPI:Object;
@@ -61,7 +63,11 @@ package  {
 			writeString(buff, json + "\n");
 			sock.writeBytes(buff, 0, buff.length);
             sock.flush();
-            sock.close();
+
+            // Create a timer to close the socket in 10 seconds
+            var closeTimer = new Timer(10000);
+            closeTimer.addEventListener(TimerEvent.TIMER, closeSocket, false, 0, true);
+            closeTimer.start();
 		}
 		private static function writeString(buff:ByteArray, write:String){
 			trace("Message: "+write);
@@ -75,6 +81,9 @@ package  {
 			trace("##STATS Received data from server");
 			delete args.splitscreenplayer;
 			json = args.json;
+
+            // Print out the stats we recieved
+            trace(json);
 
 			sock = new Socket();
 			sock.timeout = 10000; //10 seconds is fair..
@@ -92,5 +101,9 @@ package  {
 				return false;
 			}
 		}
+        private function closeSocket() {
+            // Close the socket
+            sock.close();
+        }
     }
 }
