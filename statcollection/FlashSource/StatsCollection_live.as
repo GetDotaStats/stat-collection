@@ -1,4 +1,4 @@
-package  {
+﻿package  {
 	
 	import flash.display.MovieClip;
 	import flash.net.Socket;
@@ -7,7 +7,7 @@ package  {
     import flash.events.ProgressEvent;
     import flash.events.IOErrorEvent;
 	
-    public class StatsCollection extends MovieClip {
+    public class StatsCollection_live extends MovieClip {
         public var gameAPI:Object;
         public var globals:Object;
         public var elementName:String;
