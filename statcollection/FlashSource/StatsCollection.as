@@ -24,6 +24,9 @@ package  {
             // Tell the user what is going on
             trace("##Loading StatsCollection...");
 
+            // Reset our json
+            json = '';
+
             // Load KV
             var settings = globals.GameInterface.LoadKVFile('scripts/stat_collection.kv');
 
@@ -51,7 +54,8 @@ package  {
             trace("Server was set to "+SERVER_ADDRESS+":"+SERVER_PORT);
 
             // Hook the stat collection event
-            gameAPI.SubscribeToGameEvent("stat_collection", this.statCollect);
+            gameAPI.SubscribeToGameEvent("stat_collection_part", this.statCollectPart);
+            gameAPI.SubscribeToGameEvent("stat_collection_send", this.statCollectSend);
         }
 		public function socketConnect(e:Event) {
 			// We have connected successfully!
@@ -63,11 +67,6 @@ package  {
 			writeString(buff, json + "\n");
 			sock.writeBytes(buff, 0, buff.length);
             sock.flush();
-
-            // Create a timer to close the socket in 10 seconds
-            var closeTimer = new Timer(10000);
-            closeTimer.addEventListener(TimerEvent.TIMER, closeSocket, false, 0, true);
-            closeTimer.start();
 		}
 		private static function writeString(buff:ByteArray, write:String){
 			trace("Message: "+write);
@@ -77,14 +76,20 @@ package  {
                 buff.writeByte(0);
             }
         }
-		public function statCollect(args:Object) {
-			trace("##STATS Received data from server");
-			delete args.splitscreenplayer;
-			json = args.json;
+        public function statCollectPart(args:Object) {
+            // Tell the client
+            trace("##STATS Part of that stat data recieved:");
+            trace(args.data);
 
-            // Print out the stats we recieved
-            trace(json);
+            // Store the extra data
+            json = json + args.data;
+        }
+		public function statCollectSend(args:Object) {
+            // Tell the client
+			trace("##STATS Sending payload:");
+			trace(json);
 
+            // Create the socket
 			sock = new Socket();
 			sock.timeout = 10000; //10 seconds is fair..
 			// Setup socket event handlers
@@ -101,9 +106,5 @@ package  {
 				return false;
 			}
 		}
-        private function closeSocket() {
-            // Close the socket
-            sock.close();
-        }
     }
 }
