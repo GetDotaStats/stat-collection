@@ -9,5 +9,6 @@ GetDotaStats Stat Collection
  - Big thanks to SinZ163, Tet, and Ash47 for their hard-work in testing and developing the Lua and Flash code that makes this all possible. I take no credit for the Lua and Flash found in this repo, as I have just collated and reformatted it.
 
 ###Implementations###
- - Ash47 (live) - https://github.com/ash47/LegendsOfDota
- - SinZ163 (test) - https://github.com/SinZ163/TrollsAndElves/
+ - Ash47 (live) [Legends of Dota] - https://github.com/ash47/LegendsOfDota
+ - Amused (live) [Enfos] - https://github.com/D3luxe/Enfos
+ - SinZ163 (test) [Trolls and Elves] - https://github.com/SinZ163/TrollsAndElves
