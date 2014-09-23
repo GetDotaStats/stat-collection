@@ -64,7 +64,7 @@ package  {
             // Hook the data connection
             //sock.addEventListener(ProgressEvent.SOCKET_DATA, socketData);
 			var buff:ByteArray = new ByteArray();
-			writeString(buff, json + "\n");
+			writeString(buff, json + '\r');
 			sock.writeBytes(buff, 0, buff.length);
             sock.flush();
 		}
@@ -72,9 +72,6 @@ package  {
 			trace("Message: "+write);
 			trace("Length: "+write.length);
             buff.writeUTF(write);
-            for(var i = 0; i < write.length; i++){
-                buff.writeByte(0);
-            }
         }
         public function statCollectPart(args:Object) {
             // Tell the client
