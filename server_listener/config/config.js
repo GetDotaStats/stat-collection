@@ -2,6 +2,6 @@
 var config = {};
 
 config.db_host = "localhost";
-config.db_user = "root";
-config.db_pass = "";
-config.db_name = "gds_test";
+config.db_name = "gds_site";
+config.db_user = "gds_site";
+config.db_pass = "6FRVs4Tt8pZpzJGN";
