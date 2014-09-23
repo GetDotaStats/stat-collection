@@ -1,0 +1,17 @@
+{
+    "name": "statcollection-server",
+    "version": "0.1.0",
+    "dependencies": {
+        "mysql": "*",
+        "net": "*"
+    },
+    "readmeFilename": "README.md",
+    "description": "A node socket.io server for receiving dota2 stats",
+    "main": "server.js",
+    "repository": {
+        "type": "git",
+        "url": "git://github.com/GetDotaStats/stat-collection.git"
+    },
+    "author": "jimmydorry",
+    "license": "MIT"
+}
