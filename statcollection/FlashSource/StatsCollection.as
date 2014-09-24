@@ -71,7 +71,7 @@ package  {
 		private static function writeString(buff:ByteArray, write:String){
 			trace("Message: "+write);
 			trace("Length: "+write.length);
-            buff.writeUTF(write);
+            buff.writeUTFBytes(write);
         }
         public function statCollectPart(args:Object) {
             // Tell the client
