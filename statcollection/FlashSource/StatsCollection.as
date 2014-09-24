@@ -64,7 +64,7 @@ package  {
             // Hook the data connection
             //sock.addEventListener(ProgressEvent.SOCKET_DATA, socketData);
 			var buff:ByteArray = new ByteArray();
-			writeString(buff, json + '\r');
+			writeString(buff, json + '\r\n');
 			sock.writeBytes(buff, 0, buff.length);
             sock.flush();
 		}
