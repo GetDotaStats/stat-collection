@@ -2,7 +2,7 @@
 {
     "1"
     {
-        "File"      "XXXXXXX" //YOUR MAIN UI ELEMENT
+        "File"      "XXXXXXX" //YOUR MAIN UI ELEMENT(s) AS REQUIRED
         "Depth"     "253"
     }
     "2"
