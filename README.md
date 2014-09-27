@@ -1,4 +1,4 @@
-GetDotaStats Stat Collection
+GetDotaStats Stat-Collection
 =====
 
 ###About###
