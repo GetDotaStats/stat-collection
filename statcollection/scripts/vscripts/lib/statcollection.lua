@@ -169,7 +169,8 @@ function getPlayerSnapshot(playerID)
             steamID32 = PlayerResource:GetSteamAccountID(playerID),
             hero = heroData,
             items = itemData,
-            abilities = abilityData
+            abilities = abilityData,
+            leaverStatus = PlayerResource:GetConnectionState(playerID)
         }
     end
 
