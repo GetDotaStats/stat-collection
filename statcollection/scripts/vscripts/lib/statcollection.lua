@@ -192,7 +192,7 @@ function getPlayerSnapshot(playerID)
             hero = heroData,
             items = itemData,
             abilities = abilityData,
-            leaverStatus = PlayerResource:GetConnectionState(playerID),
+            connectionStatus = PlayerResource:GetConnectionState(playerID),
         }
     end
 
