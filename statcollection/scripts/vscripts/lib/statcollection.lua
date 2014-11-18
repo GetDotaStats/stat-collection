@@ -38,8 +38,8 @@ Readers beware: You are REQUIRED to set AT LEAST modID to your mods unique ID
 -- Begin statcollection module
 module('statcollection', package.seeall)
 
--- This is the version of stat collection (it's the build date)
-local STAT_COLLECTION_VERSION = '2014.11.16.23.44'
+-- This is the version of stat collection -- do not touch!
+local STAT_COLLECTION_VERSION = '4'
 
 -- Require libs
 local libpath = (...):match('(.-)[^%.]+$')
