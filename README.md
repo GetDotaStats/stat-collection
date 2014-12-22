@@ -13,3 +13,8 @@ GetDotaStats Stat-Collection
  - Amused (live) [Enfos] - https://github.com/D3luxe/Enfos
  - Noya (live) [Warchasers] - https://github.com/MNoya/Warchasers
  - SinZ163 (test) [Trolls and Elves] - https://github.com/SinZ163/TrollsAndElves
+
+## Ports ##
+
+* Test: 4444
+* Live: 4445
