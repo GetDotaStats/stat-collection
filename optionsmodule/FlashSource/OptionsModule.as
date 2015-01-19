@@ -45,9 +45,6 @@ package  {
         // String to replace double quotes with
         private static var quoteReplacer:String = '&qt!';
 
-        // Should we stop polling?
-        private var stopPolling:Boolean = false;
-
         public function onLoaded() : void {
             // Tell the user what is going on
             trace(debugPrefix + 'Loading options module...');
@@ -168,16 +165,8 @@ package  {
 
         // This function tells the server we are happy to send options
         private function requestOptions():void {
-            // Should we stop?
-            if(stopPolling) return;
-
             // Tell the server we failed, with an error message
             gameAPI.SendServerCommand('gds_request_options');
-
-            // Wait a bit and try again
-            var timer:Timer = new Timer(5000, 1);
-            timer.addEventListener(TimerEvent.TIMER, requestOptions, false, 0, true);
-            timer.start();
         }
 
         // This function tells the server we failed to get options from the master server
@@ -204,9 +193,6 @@ package  {
 
         // The server has asked us to request options from the master server
 		private function doOptionsStuff(args:Object):void {
-            // We are no longer polling for options
-            stopPolling = true;
-
             // Grab our playerID
             var playerID:Number = globals.Players.GetLocalPlayer();
 
