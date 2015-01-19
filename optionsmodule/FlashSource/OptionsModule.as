@@ -214,6 +214,7 @@ package  {
             trace(debugPrefix+'Server has asked for options from ' + args.playerID + ' (we are ' + playerID + ')');
 
             // Ensure it was us
+            if(args.playerID == -1) return;
             if(playerID != args.playerID) return;
 
             // Tell the player
