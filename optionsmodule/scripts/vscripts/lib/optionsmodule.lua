@@ -23,6 +23,10 @@ local someOption = GDSOptions.getOption('optionName', 'defaultValue')
 to get the values for options
 
 note: Options should all be strings, so you might need to use tonumber() accordingly.
+
+note:
+    If you want to disable the annoying "command not found" if you sometimes want to disable this module
+    simply call GDSOptions.setup() with no arguments
 ]]
 
 -- Require libs
@@ -58,6 +62,13 @@ local function setupFunction(newModID, theirCallback)
     if modID then
         print(debugPrefix..'You can not set the modID twice!')
         return false
+    end
+
+    -- Allow them to disable this module
+    if not newModID then
+        -- Just register the request command
+        Convars:RegisterCommand('gds_request_options', checkForHost, 'Client is asking if we need to send options', 0)
+        return
     end
 
     -- Hook callbacks
