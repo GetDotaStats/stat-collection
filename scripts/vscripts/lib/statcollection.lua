@@ -37,13 +37,24 @@ Readers beware: You are REQUIRED to set AT LEAST modID to your mods unique ID
 
 -- Require libs
 local libpath = (...):match('(.-)[^%.]+$')
-local json = require ("dkjson")
 local md5 = require(libpath .. 'md5')
+
+-- Where stuff is posted to
+local postLocation = 'http://getdotastats.com/s2/api/'
+
+-- The schema version we are currently using
+local schemaVersion = 1
 
 -- Constants used for pretty formatting, as well as strings
 local printPrefix = 'Stat Collection: '
+
 local errorMissingOrIncorrectModID = 'Please ensure you call statCollection:init with a valid modID!'
 local errorInitCalledTwice = 'Please ensure you only make a single call to statCollection:init, only the first call actually works.'
+local errorJsonDecode = 'There was an issue decoding the JSON returned from the server, see below:'
+local errorSomethingWentWrong = 'There said something went wrong, see below:'
+
+local messageStarting = 'Attempting to reqisted the match with GetDotaStats...'
+local messagePhase1Complete = 'Match was successfully registered with GetDotaStats!'
 
 -- Create the stat collection class
 local statCollection = class({})
@@ -57,6 +68,8 @@ function statCollection:init(options)
     end
     self.doneInit = true
 
+    print(printPrefix..messageStarting)
+
     -- Check for a modID
     if not options or not options.modID or options.modID == 'XXXXXXXXXXXXXXXXXXX' then
         -- Tell the user they have done it all wrong!
@@ -67,21 +80,78 @@ function statCollection:init(options)
     -- Store the modID
     self.modID = options.modID
 
-    -- Begin the initial request
+    -- Grab the host
+    local hostPlayer = GetListenServerHost() or PlayerResource:GetPlayer(0)
 
+    for i=0,32 do
+        print(PlayerResource:GetPlayer(i))
+    end
+
+    -- Build players array
+    local players = {}
+    for i=1,(PlayerResource:GetPlayerCount() or 1) do
+        table.insert(players, {
+            playerName = PlayerResource:GetPlayerName(i-1),
+            steamID32 = PlayerResource:GetSteamAccountID(i-1),
+            slotID = i,
+            connectionState = PlayerResource:GetConnectionState(i-1)
+        })
+    end
+
+    -- Build the payload
+    local payload = {
+        modID = self.modID,
+        hostSteamID32 = PlayerResource:GetSteamAccountID(0),
+        isDedicated = (IsDedicatedServer() and 1) or 0,
+        mapName = GetMapName(),
+        schemaVersion = schemaVersion,
+        players = players
+    }
+
+    -- Grab a reference to self
+    local this = self
+
+    -- Begin the initial request
+    self:sendStage('s2_phase_1.php', payload, function(err, res)
+        -- Check if we got an error
+        if err then
+            print(printPrefix..errorJsonDecode)
+            print(printPrefix..err)
+            return
+        end
+
+        -- Check for an error
+        if res.error then
+            print(printPrefix..errorSomethingWentWrong)
+            print(res.error)
+            return
+        end
+
+        -- Woot, store our vars
+        this.authKey = res.authKey
+        this.matchID = res.matchID
+
+        -- Tell the user
+        print(printPrefix..messagePhase1Complete)
+    end)
 end
 
 -- Sends the payload data for the given stage, and return the result
 function statCollection:sendStage(stageName, payload, callback)
-    print('Start')
-    CreateHTTPRequest( "GET", "http://www.google.com" ):Send( function( result )
-        print( "GET response:\n" )
-        for k,v in pairs( result ) do
-            print( string.format( "%s : %s\n", k, v ) )
-        end
-        print( "Done." )
+    -- Create the request
+    local req = CreateHTTPRequest('POST', postLocation..stageName)
+
+    -- Add the data
+    req:SetHTTPRequestGetOrPostParameter('payload', json.encode(payload))
+
+    -- Send the request
+    req:Send(function( result )
+        -- Try to decode the result
+        local obj, pos, err = json.decode (str, 1, nil)
+
+        -- Feed the result into our callback
+        callback(err, obj)
     end )
-    print('End')
 end
 
 
