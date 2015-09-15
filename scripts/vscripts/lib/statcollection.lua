@@ -8,7 +8,7 @@ local statCollection = require('lib.statcollection')
 You need to call:
 
 statCollection:init({
-    modID = 'XXXXXXXXXXXXXXXXXXX'
+    modIdentifier = 'XXXXXXXXXXXXXXXXXXX'
 })
 
 In the Activate() function of your gamemode in order for stat tracking to take place.
@@ -38,7 +38,7 @@ local schemaVersion = 1
 local printPrefix = 'Stat Collection: '
 
 local errorFailedToContactServer = 'Failed to contact the master server! Bad status code, or no body!'
-local errorMissingOrIncorrectModID = 'Please ensure you call statCollection:init with a valid modID!'
+local errorMissingOrIncorrectModIdentifier = 'Please ensure you call statCollection:init with a valid modIdentifier!'
 local errorInitCalledTwice = 'Please ensure you only make a single call to statCollection:init, only the first call actually works.'
 local errorJsonDecode = 'There was an issue decoding the JSON returned from the server, see below:'
 local errorSomethingWentWrong = 'The server said something went wrong, see below:'
@@ -55,7 +55,7 @@ local messagePhase3Complete = 'Match stats were successfully recorded!'
 -- Store the first detected steamID
 local firstConnectedSteamID = -1
 ListenToGameEvent('player_connect', function(keys)
-    -- Grab their steamID
+-- Grab their steamID
     local steamID64 = tostring(keys.xuid)
     local steamIDPart = tonumber(steamID64:sub(4))
     if not steamIDPart then return end
@@ -80,15 +80,15 @@ function statCollection:init(options)
     -- Print the intro message
     print(printPrefix..messageStarting)
 
-    -- Check for a modID
-    if not options or not options.modID or options.modID == 'XXXXXXXXXXXXXXXXXXX' then
+    -- Check for a modIdentifier
+    if not options or not options.modIdentifier or options.modIdentifier == 'XXXXXXXXXXXXXXXXXXX' then
         -- Tell the user they have done it all wrong!
-        print(printPrefix..errorMissingOrIncorrectModID)
+        print(printPrefix..errorMissingOrIncorrectModIdentifier)
         return
     end
 
-    -- Store the modID
-    self.modID = options.modID
+    -- Store the modIdentifier
+    self.modIdentifier = options.modIdentifier
 
     -- Reset our flags store
     self.flags = self.flags or {}
@@ -110,7 +110,7 @@ function statCollection:hookFunctions()
     -- Hook winner function
     local oldSetGameWinner = GameRules.SetGameWinner
     GameRules.SetGameWinner = function(gameRules, team)
-        -- Store the stats
+    -- Store the stats
         this.winner = team
 
         -- Run the rael setGameWinner function
@@ -122,7 +122,7 @@ function statCollection:hookFunctions()
 
     -- Listen for changes in the current state
     ListenToGameEvent('game_rules_state_change', function(keys)
-        -- Grab the current state
+    -- Grab the current state
         local state = GameRules:State_Get()
 
         if state == DOTA_GAMERULES_STATE_PRE_GAME then
@@ -214,7 +214,7 @@ function statCollection:sendStage1()
 
     -- Build the payload
     local payload = {
-        modID = self.modID,
+        modIdentifier = self.modIdentifier,
         hostSteamID32 = tostring(hostSteamID),
         isDedicated = isDedicated,
         mapName = mapName,
@@ -224,7 +224,7 @@ function statCollection:sendStage1()
 
     -- Begin the initial request
     self:sendStage('s2_phase_1.php', payload, function(err, res)
-        -- Check if we got an error
+    -- Check if we got an error
         if err then
             print(printPrefix..errorJsonDecode)
             print(printPrefix..err)
@@ -267,17 +267,14 @@ function statCollection:sendStage2()
         table.insert(players, {
             playerName = PlayerResource:GetPlayerName(i-1),
             steamID32 = PlayerResource:GetSteamAccountID(i-1),
-            slotID = i,
-            connectionState = PlayerResource:GetConnectionState(i-1),
-            teamID = PlayerResource:GetTeam(i-i),
-            heroID = PlayerResource:GetSelectedHeroID(i-1)
+            connectionState = PlayerResource:GetConnectionState(i-1)
         })
     end
 
     local payload = {
         authKey = self.authKey,
         matchID = self.matchID,
-        modID = self.modID,
+        modIdentifier = self.modIdentifier,
         flags = self.flags,
         schemaVersion = schemaVersion,
         players = players
@@ -285,7 +282,7 @@ function statCollection:sendStage2()
 
     -- Send stage2
     self:sendStage('s2_phase_2.php', payload, function(err, res)
-        -- Check if we got an error
+    -- Check if we got an error
         if err then
             print(printPrefix..errorJsonDecode)
             print(printPrefix..err)
@@ -325,12 +322,10 @@ function statCollection:sendStage3()
     local players = {}
     for i=1,(PlayerResource:GetPlayerCount() or 1) do
         table.insert(players, {
-            playerName = PlayerResource:GetPlayerName(i-1),
             steamID32 = PlayerResource:GetSteamAccountID(i-1),
-            slotID = i,
             connectionState = PlayerResource:GetConnectionState(i-1),
-            teamID = PlayerResource:GetTeam(i-i),
-            heroID = PlayerResource:GetSelectedHeroID(i-1)
+            isWinner = (function() if PlayerResource:GetTeam(i-i) == self.winner then return '1' else return '0' end end)()
+            --The player's team is "PlayerResource:GetTeam(i-i)" which we compare to the winning team
         })
     end
 
@@ -343,7 +338,7 @@ function statCollection:sendStage3()
     local payload = {
         authKey = self.authKey,
         matchID = self.matchID,
-        modID = self.modID,
+        modIdentifier = self.modIdentifier,
         flags = self.flags,
         schemaVersion = schemaVersion,
         rounds = rounds,
@@ -353,7 +348,7 @@ function statCollection:sendStage3()
 
     -- Send stage2
     self:sendStage('s2_phase_3.php', payload, function(err, res)
-        -- Check if we got an error
+    -- Check if we got an error
         if err then
             print(printPrefix..errorJsonDecode)
             print(printPrefix..err)
