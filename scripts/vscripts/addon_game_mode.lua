@@ -2,6 +2,7 @@
 local statCollection = require('lib.statcollection')
 
 -- Are we testing / building the mod?
+-- TODO: Make this check addon_id when that exists
 local Testing = false
 
 -- Check if we are testing / building the mod
@@ -10,7 +11,8 @@ if not Testing then
 
     -- Init stat collection
     statCollection:init({
-        modID = 'XXXXXXXXXXXXXXXXXXX' -- GET THIS FROM http://getdotastats.com/#d2mods__my_mods
+        modIdentifier = 'XXXXXXXXXXXXXXXXXXX', -- GET THIS FROM http://getdotastats.com/#d2mods__my_mods
+        customSchema = 'example' --This will make StatsCollection load statcollection/example.lua as the custom schema
     })
 end
 

@@ -17,19 +17,17 @@ Everything else will be automatically handled by the module.
 
 If you'd like to store flags, for example, the amount of kills to win, it can be done like so:
 
-statCollection:setFlag('FlagName', 'FlagValue')
+statCollection:setFlags({FlagName = 'FlagValue'})
 
 Customising the stats beyond this will require talking to the GetDotaStats staff so a custom schema can be built for you.
 Extended functionality will be added as it is needed.
 
 Come bug us in our IRC channel or get in contact via the site chatbox. http://getdotastats.com/#contact
-
 ]]
 
 -- Require libs
 local libpath = (...):match('(.-)[^%.]+$')
 local md5 = require(libpath .. 'md5')
-local custom = require(libpath .. 'statcollection-custom')
 
 -- Where stuff is posted to
 local postLocation = 'http://getdotastats.com/s2/api/'
@@ -46,6 +44,8 @@ local errorInitCalledTwice = 'Please ensure you only make a single call to statC
 local errorJsonDecode = 'There was an issue decoding the JSON returned from the server, see below:'
 local errorSomethingWentWrong = 'The server said something went wrong, see below:'
 local errorRunInit = 'You need to call the init function before you can send stats!'
+local errorFlags = 'Flags needs to be a table!'
+local errorBadSchema = 'This schema doesn\'t exist!!'
 
 local messageStarting = 'GetDotaStats module is trying to init...'
 local messagePhase1Starting = 'Attempting to reqisted the match with GetDotaStats...'
@@ -89,9 +89,27 @@ function statCollection:init(options)
     if not options or not options.modIdentifier or options.modIdentifier == 'XXXXXXXXXXXXXXXXXXX' then
         -- Tell the user they have done it all wrong!
         print(printPrefix .. errorMissingOrIncorrectModIdentifier)
+        self.doneInit = false
         return
     end
+    if options.customSchema then
+        local status, err = pcall(function()
+            -- Load the module
+            self.custom = require("statcollection." .. options.customSchema)
+        end)
 
+        if not status then
+            -- Tell the user about it
+            print(printPrefix .. errorBadSchema)
+            print(err)
+            self.doneInit = false --Make sure this wont work
+            return 
+        end
+    else
+        print(printPrefix .. errorBadSchema)
+        self.doneInit = false --Make sure this wont work
+        return
+    end
     -- Store the modIdentifier
     self.modIdentifier = options.modIdentifier
 
@@ -172,12 +190,14 @@ function statCollection:findWinnerUsingForts()
 end
 
 -- Sets a flag
-function statCollection:setFlag(flagName, flagValue)
-    -- Ensure we have a store for flags
-    self.flags = self.flags or {}
-
-    -- Store the flag
-    self.flags[flagName] = flagValue
+function statCollection:setFlags(flags)
+    if type(flags) == "table" then
+        -- Store the new flags
+        self.flags = flags
+    else
+        -- Yell at the developer
+        print(printPrefix .. errorFlags)
+    end
 end
 
 -- Sends stage1
@@ -308,7 +328,7 @@ function statCollection:sendStage2()
     end)
 end
 
--- Sends stage3
+-- Sends stage3 (TODO: Redo this for round support)
 function statCollection:sendStage3()
     -- If we are missing required parameters, then don't send
     if not self.doneInit or not self.authKey or not self.matchID then
@@ -347,7 +367,6 @@ function statCollection:sendStage3()
         authKey = self.authKey,
         matchID = self.matchID,
         modIdentifier = self.modIdentifier,
-        flags = self.flags,
         schemaVersion = schemaVersion,
         rounds = rounds,
         gameDuration = GameRules:GetGameTime()
@@ -375,9 +394,11 @@ function statCollection:sendStage3()
 end
 
 -- Sends custom
-function statCollection:sendCustom(schemaAuthKey, game, players)
+function statCollection:sendCustom(game, players)
     -- If we are missing required parameters, then don't send
-    if not self.doneInit or not self.authKey or not self.matchID or not game or not players or not schemaAuthKey then
+    if not self.doneInit or not self.authKey or not self.matchID or not self.custom.SCHEMA_KEY then
+        game = game or {} --Some custom gamemodes might not want this
+        players = players or {} --Some custom gamemodes might not want this
         print(printPrefix .. errorRunInit)
         return
     end

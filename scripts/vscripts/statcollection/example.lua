@@ -13,7 +13,9 @@ Come bug us in our IRC channel or get in contact via the site chatbox. http://ge
 ]]
 
 -- The schema version we are currently using
-local schemaAuthKey = 'XXXXXXXXX' -- GET THIS FROM AN ADMIN ON THE SITE, THAT APPROVES YOUR SCHEMA
+local SCHEMA_KEY = 'XXXXXXXXX' -- GET THIS FROM AN ADMIN ON THE SITE, THAT APPROVES YOUR SCHEMA
+-- Do we need to enable the round API or not.
+local HAS_ROUNDS = false
 
 -- Listen for changes in the current state
 ListenToGameEvent('game_rules_state_change', function(keys)
@@ -25,8 +27,7 @@ ListenToGameEvent('game_rules_state_change', function(keys)
         -- Build game array
         local game = {}
         table.insert(game, {
-            game_duration = GameRules:GetGameTime,
-            game_picks_num = tonumber(Options.getOption('lod', MAX_REGULAR, maxSkills))
+            game_duration = GameRules:GetGameTime() --In an actual custom schema, don't send game duration plz, the base library does that already.
         })
 
 
@@ -42,6 +43,6 @@ ListenToGameEvent('game_rules_state_change', function(keys)
         end
 
         -- Send custom stats
-        statCollection:sendCustom(schemaAuthKey, game, players)
+        statCollection:sendCustom(game, players)
     end
 end, nil)
