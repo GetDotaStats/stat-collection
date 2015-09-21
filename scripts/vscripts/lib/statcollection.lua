@@ -161,7 +161,7 @@ function statCollection:hookFunctions()
     -- Grab the current state
         local state = GameRules:State_Get()
 
-        if state == DOTA_GAMERULES_STATE_PRE_GAME then
+        if state >= DOTA_GAMERULES_STATE_PRE_GAME then
             -- Send pregame stats
             this:sendStage2()
         end
