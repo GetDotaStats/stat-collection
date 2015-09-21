@@ -96,6 +96,7 @@ function statCollection:init(options)
         local status, err = pcall(function()
             -- Load the module
             self.custom = require("statcollection." .. options.customSchema)
+            self.custom:init({statCollection = self})
         end)
 
         if not status then
@@ -114,33 +115,45 @@ function statCollection:init(options)
     self.modIdentifier = options.modIdentifier
 
     -- Reset our flags store
-    self.flags = self.flags or {}
+    self.flags = {}
 
     -- Set the default winner to -1 (no winner)
     self.winner = -1
-
+    
+    --Store roundID globally
+    self.roundID = 1
+    
     -- Hook requred functions to operate correctly
     self:hookFunctions()
 
     -- Send stage1 stuff
     self:sendStage1()
 end
-
+--Utility function to prevent code repitition
+function statCollection:calcWinnersByTeam()
+    output = {}
+    for i = 1, (PlayerResource:GetPlayerCount() or 1) do
+        output[PlayerResource:GetSteamAccountID(i - 1)] = (function() if PlayerResource:GetTeam(i - i) == self.winner then return '1' else return '0' end end)()
+    end
+    return output
+end
 -- Hooks functions to make things actually work
 function statCollection:hookFunctions()
     local this = self
 
     -- Hook winner function
-    local oldSetGameWinner = GameRules.SetGameWinner
-    GameRules.SetGameWinner = function(gameRules, team)
-    -- Store the stats
-        this.winner = team
+    if self.custom.GAME_WINNER then
+        local oldSetGameWinner = GameRules.SetGameWinner
+        GameRules.SetGameWinner = function(gameRules, team)
+        -- Store the stats
+            this.winner = team
 
-        -- Run the rael setGameWinner function
-        oldSetGameWinner(gameRules, team)
+            -- Run the rael setGameWinner function
+            oldSetGameWinner(gameRules, team)
 
-        -- Attempt to send stage 3, since the match is over
-        this:sendStage3()
+            -- Attempt to send stage 3, since the match is over
+            this:sendStage3(this:calcWinnersByTeam())
+        end
     end
 
     -- Listen for changes in the current state
@@ -152,11 +165,14 @@ function statCollection:hookFunctions()
             -- Send pregame stats
             this:sendStage2()
         end
-
-        if state >= DOTA_GAMERULES_STATE_POST_GAME then
-            -- Send postgame stats
-            this:sendStage3()
+        if self.custom.ANCIENT_EXPLOSION then
+            if state >= DOTA_GAMERULES_STATE_POST_GAME then
+                -- Send postgame stats
+                self:findWinnerUsingForts()
+                this:sendStage3(this:calcWinnersByTeam())
+            end
         end
+        
     end, nil)
 end
 
@@ -329,7 +345,7 @@ function statCollection:sendStage2()
 end
 
 -- Sends stage3 (TODO: Redo this for round support)
-function statCollection:sendStage3()
+function statCollection:sendStage3(winners)
     -- If we are missing required parameters, then don't send
     if not self.doneInit or not self.authKey or not self.matchID then
         print(printPrefix .. errorRunInit)
@@ -337,14 +353,13 @@ function statCollection:sendStage3()
     end
 
     -- Ensure we can only send it once, and everything is good to go
-    if self.sentStage3 then return end
-    self.sentStage3 = true
+    if self.custom.HAS_ROUNDS  == false then
+        if self.sentStage3 then return end
+        self.sentStage3 = true
+    end
 
     -- Print the intro message
     print(printPrefix .. messagePhase3Starting)
-
-    -- Attempt to detect the winner, if we don't have one yet
-    self:findWinnerUsingForts()
 
     -- Build players array
     local players = {}
@@ -352,17 +367,14 @@ function statCollection:sendStage3()
         table.insert(players, {
             steamID32 = PlayerResource:GetSteamAccountID(i - 1),
             connectionState = PlayerResource:GetConnectionState(i - 1),
-            isWinner = (function() if PlayerResource:GetTeam(i - i) == self.winner then return '1' else return '0' end end)()
-            --The player's team is "PlayerResource:GetTeam(i-i)" which we compare to the winning team
+            isWinner = winners[PlayerResource:GetSteamAccountID(i - 1)]
         })
     end
 
     -- Build rounds table
-    local rounds = {}
-    table.insert(rounds, {
-        players = players
-    })
-
+    rounds = {}
+    rounds[self.roundID] = players
+    self.roundID += 1
     local payload = {
         authKey = self.authKey,
         matchID = self.matchID,
@@ -370,7 +382,7 @@ function statCollection:sendStage3()
         schemaVersion = schemaVersion,
         rounds = rounds,
         gameDuration = GameRules:GetGameTime()
-    }
+    } 
 
     -- Send stage3
     self:sendStage('s2_phase_3.php', payload, function(err, res)
@@ -392,21 +404,29 @@ function statCollection:sendStage3()
         print(printPrefix .. messagePhase3Complete)
     end)
 end
-
+function statCollection:submitRound(args)
+    --We receive the winners from the custom schema, lets tell phase 3 about it!
+    this:sendStage3(self.custom:submitRound(args)) 
+end
 -- Sends custom
-function statCollection:sendCustom(game, players)
+function statCollection:sendCustom(args)
+    local game = args.game or {} --Some custom gamemodes might not want this (ie, use player info only)
+    local players = arg.players or {} --Some custom gamemodes might not want this (ie, use game info only)
+    if game == {} and players == {} then
+        return --We have no info to actually send, truck it!
+    end
     -- If we are missing required parameters, then don't send
     if not self.doneInit or not self.authKey or not self.matchID or not self.custom.SCHEMA_KEY then
-        game = game or {} --Some custom gamemodes might not want this
-        players = players or {} --Some custom gamemodes might not want this
         print(printPrefix .. errorRunInit)
         return
     end
 
     -- Ensure we can only send it once, and everything is good to go
-    if self.sentCustom then return end
-    self.sentCustom = true
-
+    if self.custom.HAS_ROUNDS  == false then
+        if self.sentCustom then return end
+        self.sentCustom = true
+    end
+    
     -- Print the intro message
     print(printPrefix .. messageCustomStarting)
 
