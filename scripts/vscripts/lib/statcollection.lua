@@ -121,7 +121,7 @@ function statCollection:init(options)
     self.winner = -1
     
     --Store roundID globally
-    self.roundID = 1
+    self.roundID = 0
     
     -- Hook requred functions to operate correctly
     self:hookFunctions()
@@ -152,7 +152,7 @@ function statCollection:hookFunctions()
             oldSetGameWinner(gameRules, team)
 
             -- Attempt to send stage 3, since the match is over
-            this:sendStage3(this:calcWinnersByTeam())
+            this:sendStage3(this:calcWinnersByTeam(), true)
         end
     end
 
@@ -169,7 +169,7 @@ function statCollection:hookFunctions()
             if state >= DOTA_GAMERULES_STATE_POST_GAME then
                 -- Send postgame stats
                 self:findWinnerUsingForts()
-                this:sendStage3(this:calcWinnersByTeam())
+                this:sendStage3(this:calcWinnersByTeam(), true)
             end
         end
         
@@ -345,7 +345,7 @@ function statCollection:sendStage2()
 end
 
 -- Sends stage3 (TODO: Redo this for round support)
-function statCollection:sendStage3(winners)
+function statCollection:sendStage3(winners, lastRound)
     -- If we are missing required parameters, then don't send
     if not self.doneInit or not self.authKey or not self.matchID then
         print(printPrefix .. errorRunInit)
@@ -373,8 +373,10 @@ function statCollection:sendStage3(winners)
 
     -- Build rounds table
     rounds = {}
-    rounds[self.roundID] = players
-    self.roundID += 1
+    rounds[tostring(self.roundID)] = {
+        players=players
+    }
+    self.roundID = self.roundID + 1
     local payload = {
         authKey = self.authKey,
         matchID = self.matchID,
@@ -382,7 +384,10 @@ function statCollection:sendStage3(winners)
         schemaVersion = schemaVersion,
         rounds = rounds,
         gameDuration = GameRules:GetGameTime()
-    } 
+    }
+    if lastRound == false then
+        payload.gameFinished = 0
+    end
 
     -- Send stage3
     self:sendStage('s2_phase_3.php', payload, function(err, res)
@@ -406,12 +411,13 @@ function statCollection:sendStage3(winners)
 end
 function statCollection:submitRound(args)
     --We receive the winners from the custom schema, lets tell phase 3 about it!
-    this:sendStage3(self.custom:submitRound(args)) 
+    returnArgs = self.custom:submitRound(args)
+    self:sendStage3(returnArgs.winners, returnArgs.lastRound) 
 end
 -- Sends custom
 function statCollection:sendCustom(args)
     local game = args.game or {} --Some custom gamemodes might not want this (ie, use player info only)
-    local players = arg.players or {} --Some custom gamemodes might not want this (ie, use game info only)
+    local players = args.players or {} --Some custom gamemodes might not want this (ie, use game info only)
     if game == {} and players == {} then
         return --We have no info to actually send, truck it!
     end
@@ -431,17 +437,18 @@ function statCollection:sendCustom(args)
     print(printPrefix .. messageCustomStarting)
 
     -- Build rounds table
-    local rounds = {}
-    table.insert(rounds, {
+    -- Build rounds table
+    rounds = {}
+    rounds[tostring(self.roundID)] = {
         game = game,
-        players = players
-    })
+        players=players
+    }
 
     local payload = {
         authKey = self.authKey,
         matchID = self.matchID,
         modIdentifier = self.modIdentifier,
-        schemaAuthKey = schemaAuthKey,
+        schemaAuthKey = self.custom.SCHEMA_KEY,
         schemaVersion = schemaVersion,
         rounds = rounds
     }
@@ -471,7 +478,7 @@ end
 function statCollection:sendStage(stageName, payload, callback)
     -- Create the request
     local req = CreateHTTPRequest('POST', postLocation .. stageName)
-
+    print(json.encode(payload))
     -- Add the data
     req:SetHTTPRequestGetOrPostParameter('payload', json.encode(payload))
 

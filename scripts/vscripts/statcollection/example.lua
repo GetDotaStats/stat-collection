@@ -11,17 +11,17 @@ The schemaAuthKey is important, and can only be obtained via site admins.
 Come bug us in our IRC channel or get in contact via the site chatbox. http://getdotastats.com/#contact
 
 ]]
-local customSchema = class({
-    -- The schema version we are currently using
-    SCHEMA_KEY = 'XXXXXXXXX', -- GET THIS FROM AN ADMIN ON THE SITE, THAT APPROVES YOUR SCHEMA
-    -- Do we need to enable the round API or not.
-    HAS_ROUNDS = false,
-    -- Do we want statCollection to use team winner for game victory?
-    GAME_WINNER = true,
-    -- Do we want statCollection to use ancient explosions for game victory?
-    ANCIENT_EXPLOSION = false
-})
+local customSchema = class({})
 function customSchema:init(options)
+    -- The schema version we are currently using
+    self.SCHEMA_KEY = 'XXXXXXXXX' -- GET THIS FROM AN ADMIN ON THE SITE, THAT APPROVES YOUR SCHEMA
+    -- Do we need to enable the round API or not.
+    self.HAS_ROUNDS = false
+    -- Do we want statCollection to use team winner for game victory?
+    self.GAME_WINNER = true
+    -- Do we want statCollection to use ancient explosions for game victory?
+    self.ANCIENT_EXPLOSION = false
+    --We want to have a reference to this later
     self.statCollection = options.statCollection
     -- Listen for changes in the current state
     ListenToGameEvent('game_rules_state_change', function(keys)
@@ -41,6 +41,7 @@ function customSchema:init(options)
             local players = {}
             for i = 1, (PlayerResource:GetPlayerCount() or 1) do
                 table.insert(players, {
+                    --steamID32 required in here
                     steamID32 = PlayerResource:GetSteamAccountID(i - 1),
                     player_hero_id = PlayerResource:GetSelectedHeroID(i - 1),
                     player_kills = PlayerResource:GetKills(i - 1),
