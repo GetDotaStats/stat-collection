@@ -1,19 +1,11 @@
 --[[
-Usage:
+Integrating the library into your scripts
 
-You firstly need to include the module like so:
-
-local statCollection = require('lib.statcollection')
-
-You need to call:
-
-statCollection:init({
-    modIdentifier = 'XXXXXXXXXXXXXXXXXXX'
-})
-
-In the Activate() function of your gamemode in order for stat tracking to take place.
-
-Everything else will be automatically handled by the module.
+1. Download the statcollection from github and merge the scripts folder into your game/YOUR_ADDON/ folder.
+2. In your addon_game_mode.lua file, copy this line at the top: require('statcollection/init')
+3. Go into the scripts/vscripts/statcollection folder and inside the `settings.kv` file, change the modID XXXXX value with the modID key that was handed to you by an admin.
+4. After this, you will be sending the default basic stats when a lobby is succesfully created, and after the match ends.
+   You are encouraged to add your own gamemode-specific stats (such as a particular game setting or items being purchased). More about this on the next section.
 
 If you'd like to store flags, for example, the amount of kills to win, it can be done like so:
 
@@ -27,6 +19,9 @@ Come bug us in our IRC channel or get in contact via the site chatbox. http://ge
 
 -- Require libs
 local md5 = require('statcollection/lib/md5')
+
+-- Settings
+local statInfo = LoadKeyValues('scripts/vscripts/statcollection/settings.kv')
 
 -- Where stuff is posted to
 local postLocation = 'http://getdotastats.com/s2/api/'
@@ -78,7 +73,7 @@ if not statCollection then
 end
 
 -- Function that will setup stat collection
-function statCollection:init(options)
+function statCollection:init()
     -- Only allow init to be run once
     if self.doneInit then
         print(printPrefix .. errorInitCalledTwice)
@@ -89,20 +84,29 @@ function statCollection:init(options)
     -- Print the intro message
     print(printPrefix .. messageStarting)
 
+    -- Load up the settings
+    local modIdentifier = statInfo.modID
+    local schemaID = statInfo.schemaID
+    local HAS_ROUNDS = statInfo.HAS_ROUNDS
+    local GAME_WINNER = statInfo.GAME_WINNER
+    local ANCIENT_EXPLOSION = statInfo.ANCIENT_EXPLOSION
+
     -- Check for a modIdentifier
-    if not options or not options.modIdentifier or options.modIdentifier == 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX' then
-        -- Tell the user they have done it all wrong!
-        if options.modIdentifier == 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX' then
-            print(printPrefix.. errorDefaultModIdentifier)
-        else
-            print(printPrefix .. errorMissingModIdentifier)
-        end
+    if not modIdentifier then 
+        print(printPrefix .. errorMissingModIdentifier)
+
+    elseif modIdentifier == 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX' then
+        print(printPrefix.. errorDefaultModIdentifier)
+        
         self.doneInit = false
         return
     end
-    local status, err = pcall(function()
-        customSchema:init({statCollection = self})
-    end)
+    
+    -- Set settings
+    self.SCHEMA_KEY = statInfo.schemaID
+    self.HAS_ROUNDS = tobool(statInfo.HAS_ROUNDS)
+    self.GAME_WINNER = tobool(statInfo.GAME_WINNER)
+    self.ANCIENT_EXPLOSION = tobool(statInfo.ANCIENT_EXPLOSION)
 
     if not status then
         -- Tell the user about it
@@ -113,7 +117,7 @@ function statCollection:init(options)
     end
 
     -- Store the modIdentifier
-    self.modIdentifier = options.modIdentifier
+    self.modIdentifier = modIdentifier
 
     -- Reset our flags store
     self.flags = {}

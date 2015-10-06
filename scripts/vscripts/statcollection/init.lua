@@ -12,9 +12,7 @@ if COLLECT_STATS or TESTING then
         if state == DOTA_GAMERULES_STATE_CUSTOM_GAME_SETUP then
 
             -- Init stat collection
-            statCollection:init({
-                modIdentifier = statInfo.modID
-            })
+            statCollection:init()
         end
     end, nil)
 end
