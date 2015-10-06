@@ -38,13 +38,16 @@ local schemaVersion = 1
 local printPrefix = 'Stat Collection: '
 
 local errorFailedToContactServer = 'Failed to contact the master server! Bad status code, or no body!'
-local errorMissingOrIncorrectModIdentifier = 'Please ensure you call statCollection:init with a valid modIdentifier!'
+local errorMissingModIdentifier = 'Please ensure you call statCollection:init with a valid modIdentifier!'
+local errorDefaultModIdentifier = 'Please change your settings.kv with a valid modID, acquired after registration of your mood on the site!'
 local errorInitCalledTwice = 'Please ensure you only make a single call to statCollection:init, only the first call actually works.'
 local errorJsonDecode = 'There was an issue decoding the JSON returned from the server, see below:'
 local errorSomethingWentWrong = 'The server said something went wrong, see below:'
 local errorRunInit = 'You need to call the init function before you can send stats!'
 local errorFlags = 'Flags needs to be a table!'
 local errorBadSchema = 'This schema doesn\'t exist!!'
+local errorMissingModID = 'Missing Mod ID'
+local errorMissingSchemaID = 'Missing Schema ID'
 
 local messageStarting = 'GetDotaStats module is trying to init...'
 local messagePhase1Starting = 'Attempting to reqisted the match with GetDotaStats...'
@@ -87,9 +90,13 @@ function statCollection:init(options)
     print(printPrefix .. messageStarting)
 
     -- Check for a modIdentifier
-    if not options or not options.modIdentifier or options.modIdentifier == 'XXXXXXXXXXXXXXXXXXX' then
+    if not options or not options.modIdentifier or options.modIdentifier == 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX' then
         -- Tell the user they have done it all wrong!
-        print(printPrefix .. errorMissingOrIncorrectModIdentifier)
+        if options.modIdentifier == 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX' then
+            print(printPrefix.. errorDefaultModIdentifier)
+        else
+            print(printPrefix .. errorMissingModIdentifier)
+        end
         self.doneInit = false
         return
     end
@@ -143,7 +150,7 @@ function statCollection:hookFunctions()
     local this = self
 
     -- Hook winner function
-    if self.custom.GAME_WINNER then
+    if self.GAME_WINNER then
         local oldSetGameWinner = GameRules.SetGameWinner
         GameRules.SetGameWinner = function(gameRules, team)
 
@@ -167,7 +174,7 @@ function statCollection:hookFunctions()
             -- Send pregame stats
             this:sendStage2()
         end
-        if self.custom.ANCIENT_EXPLOSION then
+        if self.ANCIENT_EXPLOSION then
             if state >= DOTA_GAMERULES_STATE_POST_GAME then
                 -- Send postgame stats
                 self:findWinnerUsingForts()
@@ -356,7 +363,7 @@ function statCollection:sendStage3(winners, lastRound)
     end
 
     -- Ensure we can only send it once, and everything is good to go
-    if not self.custom.HAS_ROUNDS then
+    if not self.HAS_ROUNDS then
         if self.sentStage3 then return end
         self.sentStage3 = true
     else
@@ -417,9 +424,10 @@ function statCollection:sendStage3(winners, lastRound)
 end
 function statCollection:submitRound(args)
     --We receive the winners from the custom schema, lets tell phase 3 about it!
-    returnArgs = self.custom:submitRound(args)
+    returnArgs = customSchema:submitRound(args)
     self:sendStage3(returnArgs.winners, returnArgs.lastRound) 
 end
+
 -- Sends custom
 function statCollection:sendCustom(args)
     local game = args.game or {} --Some custom gamemodes might not want this (ie, use player info only)
@@ -428,14 +436,16 @@ function statCollection:sendCustom(args)
         return --We have no info to actually send, truck it!
     end
     -- If we are missing required parameters, then don't send
-    if not self.doneInit or not self.authKey or not self.matchID or not self.custom.SCHEMA_KEY then
-        print("CUSTOM ERROR")
+    if not self.doneInit or not self.authKey or not self.matchID or not self.SCHEMA_KEY then
         print(printPrefix .. errorRunInit)
+        if not self.SCHEMA_KEY then
+            print(printPrefix .. errorRunInit)
+        end
         return
     end
 
     -- Ensure we can only send it once, and everything is good to go
-    if self.custom.HAS_ROUNDS  == false then
+    if self.HAS_ROUNDS  == false then
         if self.sentCustom then return end
         self.sentCustom = true
     end
@@ -455,7 +465,7 @@ function statCollection:sendCustom(args)
         authKey = self.authKey,
         matchID = self.matchID,
         modIdentifier = self.modIdentifier,
-        schemaAuthKey = self.custom.SCHEMA_KEY,
+        schemaAuthKey = self.SCHEMA_KEY,
         schemaVersion = schemaVersion,
         rounds = rounds
     }
