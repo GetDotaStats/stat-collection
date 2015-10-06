@@ -26,8 +26,7 @@ Come bug us in our IRC channel or get in contact via the site chatbox. http://ge
 ]]
 
 -- Require libs
-local libpath = (...):match('(.-)[^%.]+$')
-local md5 = require(libpath .. 'md5')
+local md5 = require('statcollection/lib/md5')
 
 -- Where stuff is posted to
 local postLocation = 'http://getdotastats.com/s2/api/'
@@ -71,7 +70,9 @@ ListenToGameEvent('player_connect', function(keys)
 end, nil)
 
 -- Create the stat collection class
-local statCollection = class({})
+if not statCollection then
+    statCollection = class({})
+end
 
 -- Function that will setup stat collection
 function statCollection:init(options)
@@ -92,25 +93,18 @@ function statCollection:init(options)
         self.doneInit = false
         return
     end
-    if options.customSchema then
-        local status, err = pcall(function()
-            -- Load the module
-            self.custom = require("statcollection." .. options.customSchema)
-            self.custom:init({statCollection = self})
-        end)
+    local status, err = pcall(function()
+        customSchema:init({statCollection = self})
+    end)
 
-        if not status then
-            -- Tell the user about it
-            print(printPrefix .. errorBadSchema)
-            print(err)
-            self.doneInit = false --Make sure this wont work
-            return 
-        end
-    else
+    if not status then
+        -- Tell the user about it
         print(printPrefix .. errorBadSchema)
+        print(err)
         self.doneInit = false --Make sure this wont work
-        return
+        return 
     end
+
     -- Store the modIdentifier
     self.modIdentifier = options.modIdentifier
 
@@ -129,14 +123,21 @@ function statCollection:init(options)
     -- Send stage1 stuff
     self:sendStage1()
 end
---Utility function to prevent code repitition
+
+--Build the winners array
 function statCollection:calcWinnersByTeam()
     output = {}
-    for i = 1, (PlayerResource:GetPlayerCount() or 1) do
-        output[PlayerResource:GetSteamAccountID(i - 1)] = (function() if PlayerResource:GetTeam(i - i) == self.winner then return '1' else return '0' end end)()
+    local winningTeam = self.winner
+
+    for playerID = 0, DOTA_MAX_PLAYERS do
+        if PlayerResource:IsValidPlayerID(playerID) then
+            output[PlayerResource:GetSteamAccountID(playerID)] = PlayerResource:GetTeam(playerID) == winningTeam and '1' or '0'
+        end
     end
+
     return output
 end
+
 -- Hooks functions to make things actually work
 function statCollection:hookFunctions()
     local this = self
@@ -145,7 +146,8 @@ function statCollection:hookFunctions()
     if self.custom.GAME_WINNER then
         local oldSetGameWinner = GameRules.SetGameWinner
         GameRules.SetGameWinner = function(gameRules, team)
-        -- Store the stats
+
+            -- Store the stats
             this.winner = team
 
             -- Run the rael setGameWinner function
@@ -348,14 +350,17 @@ end
 function statCollection:sendStage3(winners, lastRound)
     -- If we are missing required parameters, then don't send
     if not self.doneInit or not self.authKey or not self.matchID then
+        print("sendStage3 ERROR")
         print(printPrefix .. errorRunInit)
         return
     end
 
     -- Ensure we can only send it once, and everything is good to go
-    if self.custom.HAS_ROUNDS  == false then
+    if not self.custom.HAS_ROUNDS then
         if self.sentStage3 then return end
         self.sentStage3 = true
+    else
+        self.roundID = self.roundID + 1
     end
 
     -- Print the intro message
@@ -364,8 +369,10 @@ function statCollection:sendStage3(winners, lastRound)
     -- Build players array
     local players = {}
     for i = 1, (PlayerResource:GetPlayerCount() or 1) do
+        local steamID = PlayerResource:GetSteamAccountID(i - 1)
+
         table.insert(players, {
-            steamID32 = PlayerResource:GetSteamAccountID(i - 1),
+            steamID32 = steamID,
             connectionState = PlayerResource:GetConnectionState(i - 1),
             isWinner = winners[PlayerResource:GetSteamAccountID(i - 1)]
         })
@@ -376,7 +383,6 @@ function statCollection:sendStage3(winners, lastRound)
     rounds[tostring(self.roundID)] = {
         players=players
     }
-    self.roundID = self.roundID + 1
     local payload = {
         authKey = self.authKey,
         matchID = self.matchID,
@@ -423,6 +429,7 @@ function statCollection:sendCustom(args)
     end
     -- If we are missing required parameters, then don't send
     if not self.doneInit or not self.authKey or not self.matchID or not self.custom.SCHEMA_KEY then
+        print("CUSTOM ERROR")
         print(printPrefix .. errorRunInit)
         return
     end
@@ -497,5 +504,10 @@ function statCollection:sendStage(stageName, payload, callback)
     end)
 end
 
--- Return our export
-return statCollection
+function tobool(s)
+    if s=="true" or s=="1" or s==1 then
+        return true
+    else --nil "false" "0"
+        return false
+    end
+end
