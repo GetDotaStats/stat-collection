@@ -213,9 +213,14 @@ end
 
 -- Sets a flag
 function statCollection:setFlags(flags)
+    if not self.flags then self.flags = {} end
+
     if type(flags) == "table" then
         -- Store the new flags
-        self.flags = flags
+        for flagKey,flagValue in pairs(flags) do
+            self.flags[flagKey] = flagValue
+        end
+        
     else
         -- Yell at the developer
         print(printPrefix .. errorFlags)
