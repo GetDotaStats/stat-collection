@@ -261,16 +261,16 @@ function statCollection:sendStage1()
 
     -- Workout if the server is dedicated or not
     local isDedicated = (IsDedicatedServer() and 1) or 0
+    statCollection:setFlags({dedi = isDedicated})
 
     -- Grab the mapname
     local mapName = GetMapName()
+    statCollection:setFlags({map = mapName})
 
     -- Build the payload
     local payload = {
         modIdentifier = self.modIdentifier,
         hostSteamID32 = tostring(hostSteamID),
-        isDedicated = isDedicated,
-        mapName = mapName,
         numPlayers = playerCount,
         schemaVersion = schemaVersion
     }
