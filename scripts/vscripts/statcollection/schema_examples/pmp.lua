@@ -1,28 +1,27 @@
---[[
-Usage:
+customSchema = class({})
 
-This is an example custom schema. You must assemble your game and players tables, which
-are submitted to the library via a call like:
-
-statCollection:sendCustom(schemaAuthKey, game, players)
-
-The schemaAuthKey is important, and can only be obtained via site admins.
-
-Come bug us in our IRC channel or get in contact via the site chatbox. http://getdotastats.com/#contact
-
-]]
-local customSchema = class({})
 function customSchema:init(options)
-    -- The schema version we are currently using
-    self.SCHEMA_KEY = 'XXXXXXXXX' -- GET THIS FROM AN ADMIN ON THE SITE, THAT APPROVES YOUR SCHEMA
-    -- Do we need to enable the round API or not.
-    self.HAS_ROUNDS = true
-    -- Do we want statCollection to use team winner for game victory?
-    self.GAME_WINNER = false
-    -- Do we want statCollection to use ancient explosions for game victory?
-    self.ANCIENT_EXPLOSION = false
-    --We want to have a reference to this later
-    self.statCollection = options.statCollection
+
+    -- Flags
+    statCollection:setFlags({version = GetVersion()})
+
+    -- Listen for changes in the current state
+    ListenToGameEvent('game_rules_state_change', function(keys)
+    -- Grab the current state
+        local state = GameRules:State_Get()
+
+        if state == DOTA_GAMERULES_STATE_POST_GAME then
+
+            -- Build game array
+            local game = BuildGameArray()
+
+            -- Build players array
+            local players = BuildPlayersArray()
+
+            -- Send custom stats
+            statCollection:sendCustom({game=game, players=players})
+        end
+    end, nil)
 end
 
 function customSchema:submitRound(args)
@@ -30,8 +29,8 @@ function customSchema:submitRound(args)
     game = BuildGameArray()
     players = BuildPlayersArray()
 
-    self.statCollection:sendCustom({game=game, players=players})
-    
+    statCollection:sendCustom({game=game, players=players})
+
     return {winners = winners, lastRound = false}
 end
 
@@ -39,7 +38,7 @@ end
 
 function BuildRoundWinnerArray()
     local winners = {}
-    local current_winner_team = GetTeamWithHighestKillScore()
+    local current_winner_team = GameRules.Winner or 0
     for playerID = 0, DOTA_MAX_PLAYERS do
         if PlayerResource:IsValidPlayerID(playerID) then
             if not PlayerResource:IsBroadcaster(playerID) then
@@ -52,8 +51,8 @@ end
 
 function BuildGameArray()
     local game = {}
-    game.boss_killed = GetBossKilled()
-    game.times_traded = GetTimesTraded()
+    game.bk = GetBossKilled() --boss_killed
+    game.tt = GetTimesTraded() --times_traded
     return game
 end
 
@@ -66,38 +65,43 @@ function BuildPlayersArray()
                 table.insert(players, {
                     --steamID32 required in here
                     steamID32 = PlayerResource:GetSteamAccountID(playerID),
-                    player_hero_id = PlayerResource:GetSelectedHeroID(playerID),
-                    player_kills = PlayerResource:GetKills(playerID),
-                    player_deaths = PlayerResource:GetDeaths(playerID),
-                    player_level = GetHeroLevel(playerID),
-                    
+                    ph = GetPlayerRace(playerID), --player_hero
+                    pk = PlayerResource:GetKills(playerID), --player_kills
+                    pd = PlayerResource:GetDeaths(playerID), --player_deaths
+                    pl = GetHeroLevel(playerID), --player_level
+
                     -- Resources
-                    total_gold_earned = GetTotalEarnedGold(playerID),
-                    total_lumber_earned = GetTotalEarnedLumber(playerID),
-                    total_xp_earned = GetTotalEarnedXP(playerID),
-                    player_food = GetFoodLimit(playerID),
-                    player_spawn_rate = GetSpawnRate(playerID),
+                    tge = GetTotalEarnedGold(playerID), --total_gold_earned
+                    tle = GetTotalEarnedLumber(playerID), --total_lumber_earned
+                    txe = GetTotalEarnedXP(playerID), --total_xp_earned
+                    pf = GetFoodLimit(playerID), --player_food
+                    psr = GetSpawnRate(playerID), --player_spawn_rate
+
+                    -- Defensive abilities
+                    spu = GetSuperPeonsUsed(playerID), --super_peons_used
+                    bu = GetBarricadesUsed(playerID), --barricades_used
+                    ru = GetRepairsUsed(playerID), --repairs_used
 
                     -- Upgrades
-                    upgrade_weapon = player_upgrades["weapon"] or 0,
-                    upgrade_helm = player_upgrades["helm"] or 0,
-                    upgrade_armor = player_upgrades["armor"] or 0,
-                    upgrade_wings = player_upgrades["wings"] or 0,
-                    upgrade_health = player_upgrades["health"] or 0,
+                    uw = GetPlayerWeaponLevel(playerID), --upgrade_weapon
+                    uh = player_upgrades["helm"] or 0, --upgrade_helm
+                    ua = player_upgrades["armor"] or 0, --upgrade_armor
+                    uw = player_upgrades["wings"] or 0, --upgrade_wings
+                    uhp = player_upgrades["health"] or 0, --upgrade_health
 
                     -- Passive ability upgrades
-                    ability_critical_strike = player_upgrades["critical_strike"] or 0,
-                    ability_stun_hit = player_upgrades["stun_hit"] or 0,
-                    ability_poisoned_weapons = player_upgrades["poisoned_weapons"] or 0,
-                    ability_pulverize = player_upgrades["pulverize"] or 0,
-                    ability_dodge = player_upgrades["dodge"] or 0,
-                    ability_spiked_armor = player_upgrades["spiked_armor"] or 0,
-                    
+                    acs = player_upgrades["critical_strike"] or 0, --ability_critical_strike
+                    ash = player_upgrades["stun_hit"] or 0, --ability_stun_hit
+                    apw = player_upgrades["poisoned_weapons"] or 0, --ability_poisoned_weapons
+                    ar = player_upgrades["racial"] or 0, --ability_racial
+                    ad = player_upgrades["dodge"] or 0, --ability_dodge
+                    asa = player_upgrades["spiked_armor"] or 0, --ability_spiked_armor
+
                     -- Hero global upgrades
-                    pimp_damage = player_upgrades["pimp_damage"] or 0,
-                    pimp_armor = player_upgrades["pimp_armor"] or 0,
-                    pimp_speed = player_upgrades["pimp_speed"] or 0,
-                    pimp_regen = player_upgrades["pimp_regen"] or 0,
+                    pdmg = player_upgrades["pimp_damage"] or 0, --pimp_damage
+                    parm = player_upgrades["pimp_armor"] or 0, --pimp_armor
+                    pspd = player_upgrades["pimp_speed"] or 0, --pimp_speed
+                    preg = player_upgrades["pimp_regen"] or 0, --pimp_regen
                 })
             end
         end
@@ -106,6 +110,16 @@ function BuildPlayersArray()
     return players
 end
 
--------------------------------------
+function GetPlayerWeaponLevel( playerID )
+    local player_upgrades = PMP:GetUpgradeList(playerID)
+    local race = GetPlayerRace(playerID)
+    local weapon_level = 0
 
-return customSchema
+    if race == "night_elf" then
+        weapon_level = player_upgrades["bow"] + player_upgrades["quiver"]
+    else
+        weapon_level = player_upgrades["weapon"]
+    end
+
+    return weapon_level
+end

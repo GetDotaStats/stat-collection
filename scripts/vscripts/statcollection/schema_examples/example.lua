@@ -29,9 +29,29 @@ end
 -------------------------------------
 
 function customSchema:submitRound(args)
+    winners = BuildRoundWinnerArray()
+    game = BuildGameArray()
+    players = BuildPlayersArray()
+
+    statCollection:sendCustom({game=game, players=players})
+
+    return {winners = winners, lastRound = false}
 end
 
 -------------------------------------
+
+function BuildRoundWinnerArray()
+    local winners = {}
+    local current_winner_team = GameRules.Winner or 0
+    for playerID = 0, DOTA_MAX_PLAYERS do
+        if PlayerResource:IsValidPlayerID(playerID) then
+            if not PlayerResource:IsBroadcaster(playerID) then
+                winners[PlayerResource:GetSteamAccountID(playerID)] = (PlayerResource:GetTeam(playerID) == current_winner_team) and 1 or 0
+            end
+        end
+    end
+    return winners
+end
 
 -- Returns a table with our custom game tracking.
 function BuildGameArray()
