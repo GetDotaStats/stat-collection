@@ -10,10 +10,10 @@ function customSchema:init()
     -- Listen for changes in the current state
     ListenToGameEvent('game_rules_state_change', function(keys)
         local state = GameRules:State_Get()
-      
+
         -- Send custom stats when the game ends
         if state == DOTA_GAMERULES_STATE_POST_GAME then
-    
+
             -- Build game array
             local game = BuildGameArray()
 
@@ -103,8 +103,8 @@ function GetRoshanKills()
     end
 end
 
-function GetHeroName( hero )
-    local heroName = hero:GetUnitName()
+function GetHeroName( playerID )
+    local heroName = GetSelectedHeroName( playerID )
     heroName = string.gsub(heroName,"npc_dota_hero_","") --Cuts the npc_dota_hero_ prefix
     return heroName
 end
