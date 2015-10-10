@@ -34,13 +34,16 @@ local schemaVersion = 1
 local printPrefix = 'Stat Collection: '
 
 local errorFailedToContactServer = 'Failed to contact the master server! Bad status code, or no body!'
-local errorMissingModIdentifier = 'Please ensure you call statCollection:init with a valid modIdentifier!'
+local errorMissingModIdentifier = 'Please ensure you have a settings.kv in your statcollection folder! Missing modIdentifier!'
 local errorDefaultModIdentifier = 'Please change your settings.kv with a valid modID, acquired after registration of your mood on the site!'
+local errorMissingSchemaIdentifier = 'Please ensure you have a settings.kv in your statcollection folder! Missing schemaIdentifier!'
+local errorDefaultSchemaIdentifier = 'Please change your settings.kv with a valid schemaID, acquired after contacting a site admin!'
 local errorInitCalledTwice = 'Please ensure you only make a single call to statCollection:init, only the first call actually works.'
 local errorJsonDecode = 'There was an issue decoding the JSON returned from the server, see below:'
 local errorSomethingWentWrong = 'The server said something went wrong, see below:'
 local errorRunInit = 'You need to call the init function before you can send stats!'
 local errorFlags = 'Flags needs to be a table!'
+local errorSchemaNotEnabled = 'Schema has not been enabled!!'
 local errorBadSchema = 'This schema doesn\'t exist!!'
 local errorMissingModID = 'Missing Mod ID'
 local errorMissingSchemaID = 'Missing Schema ID'
@@ -88,29 +91,43 @@ function statCollection:init()
     -- Load up the settings
     local modIdentifier = statInfo.modID
     local schemaID = statInfo.schemaID
+    local HAS_SCHEMA = statInfo.HAS_SCHEMA
     local HAS_ROUNDS = statInfo.HAS_ROUNDS
     local GAME_WINNER = statInfo.GAME_WINNER
     local ANCIENT_EXPLOSION = statInfo.ANCIENT_EXPLOSION
 
     -- Check for a modIdentifier
-    if not modIdentifier then 
+    if not modIdentifier then
         print(printPrefix .. errorMissingModIdentifier)
 
     elseif modIdentifier == 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX' then
         print(printPrefix.. errorDefaultModIdentifier)
-        
+
         self.doneInit = false
         return
     end
-    
+
     -- Set settings
-    self.SCHEMA_KEY = statInfo.schemaID
+    self.HAS_SCHEMA = tobool(statInfo.HAS_SCHEMA)
     self.HAS_ROUNDS = tobool(statInfo.HAS_ROUNDS)
     self.GAME_WINNER = tobool(statInfo.GAME_WINNER)
     self.ANCIENT_EXPLOSION = tobool(statInfo.ANCIENT_EXPLOSION)
 
+    -- Check for a schemaIdentifier
+    if not schemaID then
+        print(printPrefix .. errorMissingSchemaIdentifier)
+    elseif schemaID == 'XXXXXXXXXXXXXXXX' and self.HAS_SCHEMA then
+        print(printPrefix.. errorDefaultSchemaIdentifier)
+
+        self.doneInit = false
+        return
+    end
+
     -- Store the modIdentifier
     self.modIdentifier = modIdentifier
+
+    -- Store the schemaIdentifier
+    self.SCHEMA_KEY = statInfo.schemaID
 
     -- Reset our flags store
     self.flags = {}
@@ -355,7 +372,7 @@ function statCollection:sendStage2()
     end)
 end
 
--- Sends stage3 (TODO: Redo this for round support)
+-- Sends stage3
 function statCollection:sendStage3(winners, lastRound)
     -- If we are missing required parameters, then don't send
     if not self.doneInit or not self.authKey or not self.matchID then
@@ -432,6 +449,12 @@ end
 
 -- Sends custom
 function statCollection:sendCustom(args)
+    if not self.HAS_SCHEMA then
+        print("sendCustom ERROR")
+        print(printPrefix .. errorSchemaNotEnabled)
+        return
+    end
+
     local game = args.game or {} --Some custom gamemodes might not want this (ie, use player info only)
     local players = args.players or {} --Some custom gamemodes might not want this (ie, use game info only)
     if game == {} and players == {} then

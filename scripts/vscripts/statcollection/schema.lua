@@ -21,7 +21,7 @@ function customSchema:init()
             local players = BuildPlayersArray()
 
             -- Send custom stats
-            -- statCollection:sendCustom({game=game, players=players})
+            statCollection:sendCustom({game=game, players=players})
         end
     end, nil)
 end
@@ -36,7 +36,7 @@ end
 -- Returns a table with our custom game tracking.
 function BuildGameArray()
     local game = {}
-    game.kills = GetCouriersKilled() -- This is an example of a function that returns how many times roshan was killed
+    game.rs = GetRoshanKills() -- This is an example of a function that returns how many times roshan was killed
     return game
 end
 
@@ -59,13 +59,8 @@ function BuildPlayersArray()
                     pd = hero:GetDeaths(),  --Number of deaths of this players hero
                     nt = GetNetworth(hero), --Sum of hero gold and item worth
 
-                    -- 6 Item Slots
-                    i1 = GetItemName(hero, 1),
-                    i2 = GetItemName(hero, 2),
-                    i3 = GetItemName(hero, 3),
-                    i4 = GetItemName(hero, 4),
-                    i5 = GetItemName(hero, 5),
-                    i6 = GetItemName(hero, 6),
+                    -- Item List
+                    il = GetItemList(hero),
                 })
             end
         end
@@ -115,4 +110,31 @@ function GetItemName(hero, slot)
     else
         return ""
     end
+end
+
+--NOTE THAT THIS FUNCTION RELIES ON YOUR npc_items_custom.txt
+--having "ID" properly set to unique values (within your mod)
+function GetItemList(hero)
+    --Create a table of items for the hero
+    --Order that table to remove the impact of slot order
+    --Concatonate the table into a single string
+    local item
+    local itemID
+    local itemTable = {}
+    local itemList
+
+    for i=0,5 do
+        item = hero:GetItemInSlot(i)
+        if item then
+            itemID = item:GetAbilityIndex()
+            if itemID then
+                table.insert(itemTable,itemID)
+            end
+        end
+    end
+
+    table.sort(itemTable)
+    itemList = table.concat(itemTable, "_")
+
+    return itemList
 end
