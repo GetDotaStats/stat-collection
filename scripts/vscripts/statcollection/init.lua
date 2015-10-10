@@ -12,7 +12,7 @@ if COLLECT_STATS or TESTING then
         
         if state == DOTA_GAMERULES_STATE_CUSTOM_GAME_SETUP then
 
-            if (PlayerResource:GetPlayerCount >= MIN_PLAYERS) or TESTING then
+            if PlayerResource:GetPlayerCount() >= MIN_PLAYERS or TESTING then
 
                 -- Init stat collection
                 statCollection:init()
