@@ -34,9 +34,9 @@ local schemaVersion = 1
 local printPrefix = 'Stat Collection: '
 
 local errorFailedToContactServer = 'Failed to contact the master server! Bad status code, or no body!'
-local errorMissingModIdentifier = 'Please ensure you have a settings.kv in your statcollection folder! Missing modIdentifier!'
-local errorDefaultModIdentifier = 'Please change your settings.kv with a valid modID, acquired after registration of your mood on the site!'
-local errorMissingSchemaIdentifier = 'Please ensure you have a settings.kv in your statcollection folder! Missing schemaIdentifier!'
+local errorMissingModIdentifier = 'Please ensure you have a settings.kv in your statcollection folder! Missing modID!'
+local errorDefaultModIdentifier = 'Please change your settings.kv with a valid modID, acquired after registration of your mod on the site!'
+local errorMissingSchemaIdentifier = 'Please ensure you have a settings.kv in your statcollection folder! Missing schemaID!'
 local errorDefaultSchemaIdentifier = 'Please change your settings.kv with a valid schemaID, acquired after contacting a site admin!'
 local errorInitCalledTwice = 'Please ensure you only make a single call to statCollection:init, only the first call actually works.'
 local errorJsonDecode = 'There was an issue decoding the JSON returned from the server, see below:'
@@ -45,8 +45,8 @@ local errorRunInit = 'You need to call the init function before you can send sta
 local errorFlags = 'Flags needs to be a table!'
 local errorSchemaNotEnabled = 'Schema has not been enabled!!'
 local errorBadSchema = 'This schema doesn\'t exist!!'
-local errorMissingModID = 'Missing Mod ID'
-local errorMissingSchemaID = 'Missing Schema ID'
+local errorMissingModID = 'Missing modID'
+local errorMissingSchemaID = 'Missing schemaID'
 
 local messageStarting = 'GetDotaStats module is trying to init...'
 local messagePhase1Starting = 'Attempting to register the match with GetDotaStats...'
@@ -91,7 +91,7 @@ function statCollection:init()
     -- Load up the settings
     local modIdentifier = statInfo.modID
     local schemaID = statInfo.schemaID
-    local HAS_SCHEMA = statInfo.HAS_SCHEMA
+    local HAS_SCHEMA = statInfo.schemaID ~= 'XXXXXXXXXXXXXXXX'
     local HAS_ROUNDS = statInfo.HAS_ROUNDS
     local GAME_WINNER = statInfo.GAME_WINNER
     local ANCIENT_EXPLOSION = statInfo.ANCIENT_EXPLOSION
@@ -108,12 +108,12 @@ function statCollection:init()
     end
 
     -- Set settings
-    self.HAS_SCHEMA = tobool(statInfo.HAS_SCHEMA)
+    self.HAS_SCHEMA = HAS_SCHEMA
     self.HAS_ROUNDS = tobool(statInfo.HAS_ROUNDS)
     self.GAME_WINNER = tobool(statInfo.GAME_WINNER)
     self.ANCIENT_EXPLOSION = tobool(statInfo.ANCIENT_EXPLOSION)
 
-    -- Check for a schemaIdentifier
+    --[[ Check for a schemaIdentifier
     if not schemaID then
         print(printPrefix .. errorMissingSchemaIdentifier)
     elseif schemaID == 'XXXXXXXXXXXXXXXX' and self.HAS_SCHEMA then
@@ -121,7 +121,7 @@ function statCollection:init()
 
         self.doneInit = false
         return
-    end
+    end]]
 
     -- Store the modIdentifier
     self.modIdentifier = modIdentifier
@@ -451,7 +451,7 @@ end
 function statCollection:sendCustom(args)
     if not self.HAS_SCHEMA then
         print("sendCustom ERROR")
-        print(printPrefix .. errorSchemaNotEnabled)
+        print(printPrefix .. errorDefaultSchemaIdentifier)
         return
     end
 
