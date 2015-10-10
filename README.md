@@ -28,5 +28,9 @@ Integrating the library into your scripts
 4. After this, you will be sending the default basic stats when a lobby is succesfully created, and after the match ends.
    You are encouraged to add your own gamemode-specific stats (such as a particular game setting or items being purchased). More about this soon.
 
+###Note###
+
+We rely on GameRules:SetGameWinner(). Make sure to use this, instead of GameRules:MakeTeamLose()
+
 If you'd like to store flags, for example, the amount of kills to win, it can be done like so:
  - statCollection:setFlags({FlagName = 'FlagValue'})
