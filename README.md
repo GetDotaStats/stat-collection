@@ -24,7 +24,7 @@ Integrating the library into your scripts
 
 1. Download the statcollection from github and merge the scripts folder into your game/YOUR_ADDON/ folder.
 2. In your addon_game_mode.lua file, copy this line at the top: require('statcollection/init')
-3. Go into the scripts/vscripts/statcollection folder and inside the `settings.kv` file, change the modID XXXXX value with the modID key that was handed to you by an admin.
+3. Go into the scripts/vscripts/statcollection folder and inside the `settings.kv` file, change the modID XXXXX value with the modID key from the site (when an admin has approved the mod). You can see the stats of your mod and the key here: http://getdotastats.com/#s2__my__mods
 4. After this, you will be sending the default basic stats when a lobby is succesfully created, and after the match ends.
    You are encouraged to add your own gamemode-specific stats (such as a particular game setting or items being purchased). More about this soon.
 
