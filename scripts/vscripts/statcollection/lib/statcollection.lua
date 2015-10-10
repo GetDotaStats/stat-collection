@@ -1,19 +1,11 @@
 --[[
-Usage:
+Integrating the library into your scripts
 
-You firstly need to include the module like so:
-
-local statCollection = require('lib.statcollection')
-
-You need to call:
-
-statCollection:init({
-    modIdentifier = 'XXXXXXXXXXXXXXXXXXX'
-})
-
-In the Activate() function of your gamemode in order for stat tracking to take place.
-
-Everything else will be automatically handled by the module.
+1. Download the statcollection from github and merge the scripts folder into your game/YOUR_ADDON/ folder.
+2. In your addon_game_mode.lua file, copy this line at the top: require('statcollection/init')
+3. Go into the scripts/vscripts/statcollection folder and inside the `settings.kv` file, change the modID XXXXX value with the modID key that was handed to you by an admin.
+4. After this, you will be sending the default basic stats when a lobby is succesfully created, and after the match ends.
+   You are encouraged to add your own gamemode-specific stats (such as a particular game setting or items being purchased). More about this on the next section.
 
 If you'd like to store flags, for example, the amount of kills to win, it can be done like so:
 
@@ -26,8 +18,11 @@ Come bug us in our IRC channel or get in contact via the site chatbox. http://ge
 ]]
 
 -- Require libs
-local libpath = (...):match('(.-)[^%.]+$')
-local md5 = require(libpath .. 'md5')
+require('statcollection/lib/md5')
+require('statcollection/schema')
+
+-- Settings
+local statInfo = LoadKeyValues('scripts/vscripts/statcollection/settings.kv')
 
 -- Where stuff is posted to
 local postLocation = 'http://getdotastats.com/s2/api/'
@@ -39,16 +34,19 @@ local schemaVersion = 1
 local printPrefix = 'Stat Collection: '
 
 local errorFailedToContactServer = 'Failed to contact the master server! Bad status code, or no body!'
-local errorMissingOrIncorrectModIdentifier = 'Please ensure you call statCollection:init with a valid modIdentifier!'
+local errorMissingModIdentifier = 'Please ensure you call statCollection:init with a valid modIdentifier!'
+local errorDefaultModIdentifier = 'Please change your settings.kv with a valid modID, acquired after registration of your mood on the site!'
 local errorInitCalledTwice = 'Please ensure you only make a single call to statCollection:init, only the first call actually works.'
 local errorJsonDecode = 'There was an issue decoding the JSON returned from the server, see below:'
 local errorSomethingWentWrong = 'The server said something went wrong, see below:'
 local errorRunInit = 'You need to call the init function before you can send stats!'
 local errorFlags = 'Flags needs to be a table!'
 local errorBadSchema = 'This schema doesn\'t exist!!'
+local errorMissingModID = 'Missing Mod ID'
+local errorMissingSchemaID = 'Missing Schema ID'
 
 local messageStarting = 'GetDotaStats module is trying to init...'
-local messagePhase1Starting = 'Attempting to reqisted the match with GetDotaStats...'
+local messagePhase1Starting = 'Attempting to register the match with GetDotaStats...'
 local messagePhase2Starting = 'Attempting to send pregame stats...'
 local messagePhase3Starting = 'Attempting to send final stats...'
 local messageCustomStarting = 'Attempting to send custom stats...'
@@ -71,10 +69,12 @@ ListenToGameEvent('player_connect', function(keys)
 end, nil)
 
 -- Create the stat collection class
-local statCollection = class({})
+if not statCollection then
+    statCollection = class({})
+end
 
 -- Function that will setup stat collection
-function statCollection:init(options)
+function statCollection:init()
     -- Only allow init to be run once
     if self.doneInit then
         print(printPrefix .. errorInitCalledTwice)
@@ -85,34 +85,32 @@ function statCollection:init(options)
     -- Print the intro message
     print(printPrefix .. messageStarting)
 
+    -- Load up the settings
+    local modIdentifier = statInfo.modID
+    local schemaID = statInfo.schemaID
+    local HAS_ROUNDS = statInfo.HAS_ROUNDS
+    local GAME_WINNER = statInfo.GAME_WINNER
+    local ANCIENT_EXPLOSION = statInfo.ANCIENT_EXPLOSION
+
     -- Check for a modIdentifier
-    if not options or not options.modIdentifier or options.modIdentifier == 'XXXXXXXXXXXXXXXXXXX' then
-        -- Tell the user they have done it all wrong!
-        print(printPrefix .. errorMissingOrIncorrectModIdentifier)
+    if not modIdentifier then 
+        print(printPrefix .. errorMissingModIdentifier)
+
+    elseif modIdentifier == 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX' then
+        print(printPrefix.. errorDefaultModIdentifier)
+        
         self.doneInit = false
         return
     end
-    if options.customSchema then
-        local status, err = pcall(function()
-            -- Load the module
-            self.custom = require("statcollection." .. options.customSchema)
-            self.custom:init({statCollection = self})
-        end)
+    
+    -- Set settings
+    self.SCHEMA_KEY = statInfo.schemaID
+    self.HAS_ROUNDS = tobool(statInfo.HAS_ROUNDS)
+    self.GAME_WINNER = tobool(statInfo.GAME_WINNER)
+    self.ANCIENT_EXPLOSION = tobool(statInfo.ANCIENT_EXPLOSION)
 
-        if not status then
-            -- Tell the user about it
-            print(printPrefix .. errorBadSchema)
-            print(err)
-            self.doneInit = false --Make sure this wont work
-            return 
-        end
-    else
-        print(printPrefix .. errorBadSchema)
-        self.doneInit = false --Make sure this wont work
-        return
-    end
     -- Store the modIdentifier
-    self.modIdentifier = options.modIdentifier
+    self.modIdentifier = modIdentifier
 
     -- Reset our flags store
     self.flags = {}
@@ -129,23 +127,31 @@ function statCollection:init(options)
     -- Send stage1 stuff
     self:sendStage1()
 end
---Utility function to prevent code repitition
+
+--Build the winners array
 function statCollection:calcWinnersByTeam()
     output = {}
-    for i = 1, (PlayerResource:GetPlayerCount() or 1) do
-        output[PlayerResource:GetSteamAccountID(i - 1)] = (function() if PlayerResource:GetTeam(i - i) == self.winner then return '1' else return '0' end end)()
+    local winningTeam = self.winner
+
+    for playerID = 0, DOTA_MAX_PLAYERS do
+        if PlayerResource:IsValidPlayerID(playerID) then
+            output[PlayerResource:GetSteamAccountID(playerID)] = PlayerResource:GetTeam(playerID) == winningTeam and '1' or '0'
+        end
     end
+
     return output
 end
+
 -- Hooks functions to make things actually work
 function statCollection:hookFunctions()
     local this = self
 
     -- Hook winner function
-    if self.custom.GAME_WINNER then
+    if self.GAME_WINNER then
         local oldSetGameWinner = GameRules.SetGameWinner
         GameRules.SetGameWinner = function(gameRules, team)
-        -- Store the stats
+
+            -- Store the stats
             this.winner = team
 
             -- Run the rael setGameWinner function
@@ -165,7 +171,7 @@ function statCollection:hookFunctions()
             -- Send pregame stats
             this:sendStage2()
         end
-        if self.custom.ANCIENT_EXPLOSION then
+        if self.ANCIENT_EXPLOSION then
             if state >= DOTA_GAMERULES_STATE_POST_GAME then
                 -- Send postgame stats
                 self:findWinnerUsingForts()
@@ -207,9 +213,14 @@ end
 
 -- Sets a flag
 function statCollection:setFlags(flags)
+    if not self.flags then self.flags = {} end
+
     if type(flags) == "table" then
         -- Store the new flags
-        self.flags = flags
+        for flagKey,flagValue in pairs(flags) do
+            self.flags[flagKey] = flagValue
+        end
+        
     else
         -- Yell at the developer
         print(printPrefix .. errorFlags)
@@ -250,16 +261,16 @@ function statCollection:sendStage1()
 
     -- Workout if the server is dedicated or not
     local isDedicated = (IsDedicatedServer() and 1) or 0
+    statCollection:setFlags({dedi = isDedicated})
 
     -- Grab the mapname
     local mapName = GetMapName()
+    statCollection:setFlags({map = mapName})
 
     -- Build the payload
     local payload = {
         modIdentifier = self.modIdentifier,
         hostSteamID32 = tostring(hostSteamID),
-        isDedicated = isDedicated,
-        mapName = mapName,
         numPlayers = playerCount,
         schemaVersion = schemaVersion
     }
@@ -348,14 +359,17 @@ end
 function statCollection:sendStage3(winners, lastRound)
     -- If we are missing required parameters, then don't send
     if not self.doneInit or not self.authKey or not self.matchID then
+        print("sendStage3 ERROR")
         print(printPrefix .. errorRunInit)
         return
     end
 
     -- Ensure we can only send it once, and everything is good to go
-    if self.custom.HAS_ROUNDS  == false then
+    if not self.HAS_ROUNDS then
         if self.sentStage3 then return end
         self.sentStage3 = true
+    else
+        self.roundID = self.roundID + 1
     end
 
     -- Print the intro message
@@ -364,8 +378,10 @@ function statCollection:sendStage3(winners, lastRound)
     -- Build players array
     local players = {}
     for i = 1, (PlayerResource:GetPlayerCount() or 1) do
+        local steamID = PlayerResource:GetSteamAccountID(i - 1)
+
         table.insert(players, {
-            steamID32 = PlayerResource:GetSteamAccountID(i - 1),
+            steamID32 = steamID,
             connectionState = PlayerResource:GetConnectionState(i - 1),
             isWinner = winners[PlayerResource:GetSteamAccountID(i - 1)]
         })
@@ -376,7 +392,6 @@ function statCollection:sendStage3(winners, lastRound)
     rounds[tostring(self.roundID)] = {
         players=players
     }
-    self.roundID = self.roundID + 1
     local payload = {
         authKey = self.authKey,
         matchID = self.matchID,
@@ -411,9 +426,10 @@ function statCollection:sendStage3(winners, lastRound)
 end
 function statCollection:submitRound(args)
     --We receive the winners from the custom schema, lets tell phase 3 about it!
-    returnArgs = self.custom:submitRound(args)
+    returnArgs = customSchema:submitRound(args)
     self:sendStage3(returnArgs.winners, returnArgs.lastRound) 
 end
+
 -- Sends custom
 function statCollection:sendCustom(args)
     local game = args.game or {} --Some custom gamemodes might not want this (ie, use player info only)
@@ -422,13 +438,16 @@ function statCollection:sendCustom(args)
         return --We have no info to actually send, truck it!
     end
     -- If we are missing required parameters, then don't send
-    if not self.doneInit or not self.authKey or not self.matchID or not self.custom.SCHEMA_KEY then
+    if not self.doneInit or not self.authKey or not self.matchID or not self.SCHEMA_KEY then
         print(printPrefix .. errorRunInit)
+        if not self.SCHEMA_KEY then
+            print(printPrefix .. errorRunInit)
+        end
         return
     end
 
     -- Ensure we can only send it once, and everything is good to go
-    if self.custom.HAS_ROUNDS  == false then
+    if self.HAS_ROUNDS  == false then
         if self.sentCustom then return end
         self.sentCustom = true
     end
@@ -448,7 +467,7 @@ function statCollection:sendCustom(args)
         authKey = self.authKey,
         matchID = self.matchID,
         modIdentifier = self.modIdentifier,
-        schemaAuthKey = self.custom.SCHEMA_KEY,
+        schemaAuthKey = self.SCHEMA_KEY,
         schemaVersion = schemaVersion,
         rounds = rounds
     }
@@ -497,5 +516,10 @@ function statCollection:sendStage(stageName, payload, callback)
     end)
 end
 
--- Return our export
-return statCollection
+function tobool(s)
+    if s=="true" or s=="1" or s==1 then
+        return true
+    else --nil "false" "0"
+        return false
+    end
+end
