@@ -10,10 +10,10 @@ function customSchema:init()
     -- Listen for changes in the current state
     ListenToGameEvent('game_rules_state_change', function(keys)
         local state = GameRules:State_Get()
-      
+
         -- Send custom stats when the game ends
         if state == DOTA_GAMERULES_STATE_POST_GAME then
-    
+
             -- Build game array
             local game = BuildGameArray()
 
@@ -21,7 +21,7 @@ function customSchema:init()
             local players = BuildPlayersArray()
 
             -- Send custom stats
-            -- statCollection:sendCustom({game=game, players=players})
+            statCollection:sendCustom({game=game, players=players})
         end
     end, nil)
 end
@@ -29,14 +29,34 @@ end
 -------------------------------------
 
 function customSchema:submitRound(args)
+    winners = BuildRoundWinnerArray()
+    game = BuildGameArray()
+    players = BuildPlayersArray()
+
+    statCollection:sendCustom({game=game, players=players})
+
+    return {winners = winners, lastRound = false}
 end
 
 -------------------------------------
 
+function BuildRoundWinnerArray()
+    local winners = {}
+    local current_winner_team = GameRules.Winner or 0
+    for playerID = 0, DOTA_MAX_PLAYERS do
+        if PlayerResource:IsValidPlayerID(playerID) then
+            if not PlayerResource:IsBroadcaster(playerID) then
+                winners[PlayerResource:GetSteamAccountID(playerID)] = (PlayerResource:GetTeam(playerID) == current_winner_team) and 1 or 0
+            end
+        end
+    end
+    return winners
+end
+
 -- Returns a table with our custom game tracking.
 function BuildGameArray()
     local game = {}
-    game.kills = GetCouriersKilled() -- This is an example of a function that returns how many times roshan was killed
+    game.rs = GetRoshanKills() -- This is an example of a function that returns how many times roshan was killed
     return game
 end
 
@@ -59,13 +79,8 @@ function BuildPlayersArray()
                     pd = hero:GetDeaths(),  --Number of deaths of this players hero
                     nt = GetNetworth(hero), --Sum of hero gold and item worth
 
-                    -- 6 Item Slots
-                    i1 = GetItemName(hero, 1),
-                    i2 = GetItemName(hero, 2),
-                    i3 = GetItemName(hero, 3),
-                    i4 = GetItemName(hero, 4),
-                    i5 = GetItemName(hero, 5),
-                    i6 = GetItemName(hero, 6),
+                    -- Item List
+                    il = GetItemList(hero),
                 })
             end
         end
@@ -88,8 +103,8 @@ function GetRoshanKills()
     end
 end
 
-function GetHeroName( hero )
-    local heroName = hero:GetUnitName()
+function GetHeroName( playerID )
+    local heroName = GetSelectedHeroName( playerID )
     heroName = string.gsub(heroName,"npc_dota_hero_","") --Cuts the npc_dota_hero_ prefix
     return heroName
 end
@@ -115,4 +130,31 @@ function GetItemName(hero, slot)
     else
         return ""
     end
+end
+
+--NOTE THAT THIS FUNCTION RELIES ON YOUR npc_items_custom.txt
+--having "ID" properly set to unique values (within your mod)
+function GetItemList(hero)
+    --Create a table of items for the hero
+    --Order that table to remove the impact of slot order
+    --Concatonate the table into a single string
+    local item
+    local itemID
+    local itemTable = {}
+    local itemList
+
+    for i=0,5 do
+        item = hero:GetItemInSlot(i)
+        if item then
+            itemID = item:GetAbilityIndex()
+            if itemID then
+                table.insert(itemTable,itemID)
+            end
+        end
+    end
+
+    table.sort(itemTable)
+    itemList = table.concat(itemTable, "_")
+
+    return itemList
 end
