@@ -57,6 +57,7 @@ local messagePhase1Complete = 'Match was successfully registered with GetDotaSta
 local messagePhase2Complete = 'Match pregame settings have been recorded!'
 local messagePhase3Complete = 'Match stats were successfully recorded!'
 local messageCustomComplete = 'Match custom stats were successfully recorded!'
+local messageFlagsSet       = 'Flag was successfully set!'
 
 -- Store the first detected steamID
 local firstConnectedSteamID = -1
@@ -236,6 +237,7 @@ function statCollection:setFlags(flags)
         -- Store the new flags
         for flagKey,flagValue in pairs(flags) do
             self.flags[flagKey] = flagValue
+            print(printPrefix .. messageFlagsSet .. " {"..flagKey..":"..tostring(flagValue).."}")
         end
         
     else
