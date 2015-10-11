@@ -130,9 +130,6 @@ function statCollection:init()
     -- Store the schemaIdentifier
     self.SCHEMA_KEY = statInfo.schemaID
 
-    -- Reset our flags store
-    self.flags = {}
-
     -- Set the default winner to -1 (no winner)
     self.winner = -1
     
