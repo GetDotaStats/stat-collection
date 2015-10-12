@@ -5,7 +5,6 @@ local statInfo = LoadKeyValues('scripts/vscripts/statcollection/settings.kv')
 local COLLECT_STATS = not Convars:GetBool('developer')
 local TESTING = tobool(statInfo.TESTING)
 local MIN_PLAYERS = tonumber(statInfo.MIN_PLAYERS)
-local HAS_SCHEMA = (statInfo.schemaID ~= 'XXXXXXXXXXXXXXXX')
 
 if COLLECT_STATS or TESTING then
     ListenToGameEvent('game_rules_state_change', function(keys)
@@ -17,11 +16,7 @@ if COLLECT_STATS or TESTING then
 
                 -- Init stat collection
                 statCollection:init()
-
-                -- Only do schema stuff if we have a schema
-                if HAS_SCHEMA then
-                    customSchema:init()
-                end
+                customSchema:init()
             end
         end
     end, nil)
