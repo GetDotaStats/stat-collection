@@ -89,15 +89,8 @@ function statCollection:init()
     -- Print the intro message
     print(printPrefix .. messageStarting)
 
-    -- Load up the settings
-    local modIdentifier = statInfo.modID
-    local schemaID = statInfo.schemaID
-    local HAS_SCHEMA = statInfo.schemaID ~= 'XXXXXXXXXXXXXXXX'
-    local HAS_ROUNDS = statInfo.HAS_ROUNDS
-    local GAME_WINNER = statInfo.GAME_WINNER
-    local ANCIENT_EXPLOSION = statInfo.ANCIENT_EXPLOSION
-
     -- Check for a modIdentifier
+    local modIdentifier = statInfo.modID
     if not modIdentifier then
         print(printPrefix .. errorMissingModIdentifier)
 
@@ -108,12 +101,6 @@ function statCollection:init()
         return
     end
 
-    -- Set settings
-    self.HAS_SCHEMA = HAS_SCHEMA
-    self.HAS_ROUNDS = tobool(statInfo.HAS_ROUNDS)
-    self.GAME_WINNER = tobool(statInfo.GAME_WINNER)
-    self.ANCIENT_EXPLOSION = tobool(statInfo.ANCIENT_EXPLOSION)
-
     --[[ Check for a schemaIdentifier
     if not schemaID then
         print(printPrefix .. errorMissingSchemaIdentifier)
@@ -123,6 +110,13 @@ function statCollection:init()
         self.doneInit = false
         return
     end]]
+
+    -- Load and set settings
+    self.HAS_SCHEMA = statInfo.schemaID ~= 'XXXXXXXXXXXXXXXX'
+    self.HAS_ROUNDS = tobool(statInfo.HAS_ROUNDS)
+    self.GAME_WINNER = tobool(statInfo.GAME_WINNER)
+    self.ANCIENT_EXPLOSION = tobool(statInfo.ANCIENT_EXPLOSION)
+    self.TESTING = tobool(statInfo.TESTING)
 
     -- Store the modIdentifier
     self.modIdentifier = modIdentifier
