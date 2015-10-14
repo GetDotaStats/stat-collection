@@ -136,40 +136,23 @@ function GetNetworth( hero )
     end
 end
 
-function GetItemName(hero, slot)
-    local item = hero:GetItemInSlot(slot)
-    if item then
-        local itemName = item:GetAbilityName()
-        itemName = string.gsub(itemName,"item_","") --Cuts the item_ prefix
-        return itemName
-    else
-        return ""
-    end
-end
-
---NOTE THAT THIS FUNCTION RELIES ON YOUR npc_items_custom.txt
---having "ID" properly set to unique values (within your mod)
 function GetItemList(hero)
-    --Create a table of items for the hero
-    --Order that table to remove the impact of slot order
-    --Concatonate the table into a single string
-    local item
-    local itemID
     local itemTable = {}
-    local itemList
 
     for i=0,5 do
-        item = hero:GetItemInSlot(i)
+        local item = hero:GetItemInSlot(i)
         if item then
-            itemID = item:GetAbilityIndex()
-            if itemID then
-                table.insert(itemTable,itemID)
-            end
+            local itemName = string.gsub(item:GetAbilityName(),"item_","")
+            table.insert(itemTable,itemName)
         end
     end
 
     table.sort(itemTable)
-    itemList = table.concat(itemTable, "_")
+    local itemList = table.concat(itemTable, "_")
 
     return itemList
+end
+
+if Convars:GetBool('developer') then
+    Convars:RegisterCommand("test_schema", function() PrintSchema(BuildGameArray(),BuildPlayersArray()) end, "Test the custom schema arrays", 0)
 end
