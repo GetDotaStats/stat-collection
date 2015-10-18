@@ -28,7 +28,7 @@ local statInfo = LoadKeyValues('scripts/vscripts/statcollection/settings.kv')
 local postLocation = 'http://getdotastats.com/s2/api/'
 
 -- The schema version we are currently using
-local schemaVersion = 1
+local schemaVersion = 2
 
 -- Constants used for pretty formatting, as well as strings
 local printPrefix = 'Stat Collection: '
