@@ -6,11 +6,26 @@ function modifier_statcollection_network:OnCreated(keys)
         local printPrefix = 'Stat Collection: '
         print(printPrefix .. " Client Network Created for Player "..playerID)
 
+        local modID = CustomNetTables:GetTableValue("statcollection", "modID").modID
+        local steamID = CustomNetTables:GetTableValue("statcollection", tostring(playerID)).steamID
+        local matchID = CustomNetTables:GetTableValue("statcollection", "matchID").matchID
+
+        if not modID then
+            print("Client doesn't know the modID, abort!")
+            return
+        elseif not steamID then
+            print("Client doesn't know the steamID, abort!")
+            return
+        elseif not matchID then
+            print("Client doesn't know the matchID, abort!")
+            return
+        end
+
         -- Build the payload
         local payload = {
-            modIdentifier = '0a545b9a80b2c06512e7bf3d8a9bbae6',
-            steamID32 = tostring('322'),
-            matchID = '420',
+            modIdentifier = modID,
+            steamID32 = steamID,
+            matchID = matchID,
             schemaVersion = 2
         }
 
@@ -45,11 +60,8 @@ function modifier_statcollection_network:OnCreated(keys)
                 print(res.error)
             end
 
+            -- Remove the modifier
             self:Destroy()
         end)
     end
-end
-
-function modifier_statcollection_network:IsHidden()
-    return true
 end
