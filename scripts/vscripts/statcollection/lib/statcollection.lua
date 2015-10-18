@@ -72,9 +72,20 @@ ListenToGameEvent('player_connect', function(keys)
     firstConnectedSteamID = steamID
 end, nil)
 
+-- Lua Modifier used for collecting client data
+LinkLuaModifier( "modifier_statcollection_network", "statcollection/lib/statcollection_client.lua", LUA_MODIFIER_MOTION_NONE )
+
 -- Create the stat collection class
 if not statCollection then
     statCollection = class({})
+end
+
+function statCollection:OnPlayerPickHero(keys)  
+    local hero = EntIndexToHScript(keys.heroindex)
+
+    if hero then
+        hero:AddNewModifier(hero, nil, "modifier_statcollection_network", {})
+    end
 end
 
 -- Function that will setup stat collection
