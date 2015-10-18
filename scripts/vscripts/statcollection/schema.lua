@@ -49,7 +49,7 @@ end
 
 function BuildRoundWinnerArray()
     local winners = {}
-    local current_winner_team = GameRules.Winner or 0
+    local current_winner_team = GameRules.Winner or 0 --You'll need to provide your own way of determining which team won the round
     for playerID = 0, DOTA_MAX_PLAYERS do
         if PlayerResource:IsValidPlayerID(playerID) then
             if not PlayerResource:IsBroadcaster(playerID) then
@@ -59,6 +59,11 @@ function BuildRoundWinnerArray()
     end
     return winners
 end
+
+-------------------------------------
+
+-- In the statcollection/lib/utilities.lua, you'll find many useful functions to build your schema.
+-- You are also encouraged to call your custom mod-specific functions
 
 -- Returns a table with our custom game tracking.
 function BuildGameArray()
@@ -77,10 +82,11 @@ function BuildPlayersArray()
                 local hero = PlayerResource:GetSelectedHeroEntity(playerID)
 
                 table.insert(players, {
-                    --steamID32 required in here
+                    -- steamID32 required in here
                     steamID32 = PlayerResource:GetSteamAccountID(playerID),
 
-                    -- Example functions of generic stats (keep, delete or change any that you don't need)
+                    -- Example functions of generic stats defined in statcollection/lib/utilities.lua 
+                    -- Keep, delete or change any as needed
                     ph = GetHeroName(playerID), --Hero by its short name
                     pk = hero:GetKills(),   --Number of kills of this players hero
                     pd = hero:GetDeaths(),  --Number of deaths of this players hero
@@ -96,10 +102,7 @@ function BuildPlayersArray()
     return players
 end
 
--------------------------------------
---          Stat Functions         --
--------------------------------------
-
+-- Prints the custom schema, required to get an schemaID
 function PrintSchema( gameArray, playerArray )
     print("-------- GAME DATA --------")
     DeepPrintTable(gameArray)
@@ -108,51 +111,7 @@ function PrintSchema( gameArray, playerArray )
     print("-------------------------------------")
 end
 
-function GetRoshanKills()
-    local total_rosh_kills = 0
-    for playerID = 0, DOTA_MAX_PLAYERS do
-        if PlayerResource:IsValidPlayerID(playerID) then
-            local roshan_kills_player =  PlayerResource:GetRoshanKills(playerID)
-            total_rosh_kills = total_rosh_kills + roshan_kills_player
-        end
-    end
-end
-
-function GetHeroName( playerID )
-    local heroName = GetSelectedHeroName( playerID )
-    heroName = string.gsub(heroName,"npc_dota_hero_","") --Cuts the npc_dota_hero_ prefix
-    return heroName
-end
-
-function GetNetworth( hero )
-    local gold = hero:GetGold()
-
-    -- Iterate over item slots adding up its gold cost
-    for i=0,15 do
-        local item = hero:GetItemInSlot(i)
-        if item then
-            gold = gold + item:GetCost()
-        end
-    end
-end
-
-function GetItemList(hero)
-    local itemTable = {}
-
-    for i=0,5 do
-        local item = hero:GetItemInSlot(i)
-        if item then
-            local itemName = string.gsub(item:GetAbilityName(),"item_","")
-            table.insert(itemTable,itemName)
-        end
-    end
-
-    table.sort(itemTable)
-    local itemList = table.concat(itemTable, "_")
-
-    return itemList
-end
-
+-- Write 'test_schema' on the console to test your current functions instead of having to end the game
 if Convars:GetBool('developer') then
     Convars:RegisterCommand("test_schema", function() PrintSchema(BuildGameArray(),BuildPlayersArray()) end, "Test the custom schema arrays", 0)
 end
