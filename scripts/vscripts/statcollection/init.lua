@@ -1,5 +1,6 @@
 require("statcollection/schema")
 require('statcollection/lib/statcollection')
+require('statcollection/lib/utilities')
 
 local statInfo = LoadKeyValues('scripts/vscripts/statcollection/settings.kv')
 local COLLECT_STATS = not Convars:GetBool('developer')
