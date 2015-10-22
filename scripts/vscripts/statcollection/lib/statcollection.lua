@@ -72,20 +72,9 @@ ListenToGameEvent('player_connect', function(keys)
     firstConnectedSteamID = steamID
 end, nil)
 
--- Lua Modifier used for collecting client data
-LinkLuaModifier( "modifier_statcollection_network", "statcollection/lib/statcollection_client.lua", LUA_MODIFIER_MOTION_NONE )
-
 -- Create the stat collection class
 if not statCollection then
     statCollection = class({})
-end
-
-function statCollection:OnPlayerPickHero(keys)  
-    local hero = EntIndexToHScript(keys.heroindex)
-
-    if hero then
-        hero:AddNewModifier(hero, nil, "modifier_statcollection_network", {})
-    end
 end
 
 -- Function that will setup stat collection
@@ -338,12 +327,14 @@ function statCollection:sendStage2()
 
     -- Build players array
     local players = {}
-    for i = 1, (PlayerResource:GetPlayerCount() or 1) do
-        table.insert(players, {
-            playerName = PlayerResource:GetPlayerName(i - 1),
-            steamID32 = PlayerResource:GetSteamAccountID(i - 1),
-            connectionState = PlayerResource:GetConnectionState(i - 1)
-        })
+    for playerID = 0, DOTA_MAX_PLAYERS do
+        if PlayerResource:IsValidPlayerID(playerID) then
+            table.insert(players, {
+                playerName = PlayerResource:GetPlayerName(playerID),
+                steamID32 = PlayerResource:GetSteamAccountID(playerID),
+                connectionState = PlayerResource:GetConnectionState(playerID)
+            })
+        end
     end
 
     local payload = {
@@ -482,7 +473,6 @@ function statCollection:sendCustom(args)
     -- Print the intro message
     print(printPrefix .. messageCustomStarting)
 
-    -- Build rounds table
     -- Build rounds table
     rounds = {}
     rounds[tostring(self.roundID)] = {
