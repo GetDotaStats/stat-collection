@@ -316,6 +316,9 @@ function statCollection:sendStage2()
     -- Print the intro message
     print(printPrefix .. messagePhase2Starting)
 
+    -- Client check in
+    CustomGameEventManager:Send_ServerToAllClients("statcollection_client", { modID = self.modIdentifier, matchID = self.matchID, schemaVersion = schemaVersion})
+
     -- Build players array
     local players = {}
     for playerID = 0, DOTA_MAX_PLAYERS do

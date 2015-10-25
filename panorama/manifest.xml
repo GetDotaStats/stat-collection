@@ -1,0 +1,3 @@
+    <scripts>
+        <include src="file://{resources}/scripts/custom_game/statcollection.js" /> 
+    </scripts>
