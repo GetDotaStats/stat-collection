@@ -258,6 +258,7 @@ function statCollection:sendStage1()
     -- Workout the player count
     local playerCount = PlayerResource:GetPlayerCount()
     if playerCount <= 0 then playerCount = 1 end
+    statCollection:setFlags({numPlayers = playerCount})
 
     -- Workout who is hosting
     local hostSteamID = PlayerResource:GetSteamAccountID(0)
