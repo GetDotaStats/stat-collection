@@ -59,19 +59,6 @@ local messagePhase3Complete = 'Match stats were successfully recorded!'
 local messageCustomComplete = 'Match custom stats were successfully recorded!'
 local messageFlagsSet       = 'Flag was successfully set!'
 
--- Store the first detected steamID
-local firstConnectedSteamID = -1
-ListenToGameEvent('player_connect', function(keys)
--- Grab their steamID
-    local steamID64 = tostring(keys.xuid)
-    local steamIDPart = tonumber(steamID64:sub(4))
-    if not steamIDPart then return end
-    local steamID = tostring(steamIDPart - 61197960265728)
-
-    -- Store it
-    firstConnectedSteamID = steamID
-end, nil)
-
 -- Create the stat collection class
 if not statCollection then
     statCollection = class({})
@@ -261,14 +248,17 @@ function statCollection:sendStage1()
     statCollection:setFlags({numPlayers = playerCount})
 
     -- Workout who is hosting
-    local hostSteamID = PlayerResource:GetSteamAccountID(0)
-    if hostSteamID == 0 then
-        if firstConnectedSteamID ~= -1 then
-            hostSteamID = firstConnectedSteamID
-        else
-            hostSteamID = -1
+    local hostID
+    for playerID = 0, DOTA_MAX_PLAYERS do
+        if PlayerResource:IsValidPlayerID(playerID) then
+            local player = PlayerResource:GetPlayer(playerID)
+            if GameRules:PlayerHasCustomGameHostPrivileges(player) then 
+                hostID = playerID
+                break
+            end
         end
     end
+    local hostSteamID = PlayerResource:GetSteamAccountID(hostID)
 
     -- Workout if the server is dedicated or not
     local isDedicated = (IsDedicatedServer() and 1) or 0
