@@ -28,7 +28,7 @@ local statInfo = LoadKeyValues('scripts/vscripts/statcollection/settings.kv')
 local postLocation = 'http://getdotastats.com/s2/api/'
 
 -- The schema version we are currently using
-local schemaVersion = 2
+local schemaVersion = 3
 
 -- Constants used for pretty formatting, as well as strings
 local printPrefix = 'Stat Collection: '
@@ -272,7 +272,6 @@ function statCollection:sendStage1()
     local payload = {
         modIdentifier = self.modIdentifier,
         hostSteamID32 = tostring(hostSteamID),
-        numPlayers = playerCount,
         schemaVersion = schemaVersion
     }
 
