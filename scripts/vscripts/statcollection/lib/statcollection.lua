@@ -163,7 +163,11 @@ function statCollection:hookFunctions()
     -- Grab the current state
         local state = GameRules:State_Get()
 
-        if state >= DOTA_GAMERULES_STATE_PRE_GAME then
+        if state == DOTA_GAMERULES_STATE_CUSTOM_GAME_SETUP then
+            -- Load time flag
+            statCollection:setFlags({loadTime = math.floor(GameRules:GetGameTime())})
+
+        elseif state >= DOTA_GAMERULES_STATE_PRE_GAME then
             -- Send pregame stats
             this:sendStage2()
         end
