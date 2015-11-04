@@ -167,6 +167,9 @@ function statCollection:hookFunctions()
             -- Load time flag
             statCollection:setFlags({loadTime = math.floor(GameRules:GetGameTime())})
 
+            -- Start the client checking recording
+            CustomUI:DynamicHud_Create(-1,"statcollection","file://{resources}/layout/custom_game/statcollection.xml",nil)
+
         elseif state >= DOTA_GAMERULES_STATE_PRE_GAME then
             -- Send pregame stats
             this:sendStage2()

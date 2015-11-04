@@ -2,7 +2,7 @@
 
 function OnClientCheckIn (args) {
 
-    var payload = {
+    var payload = { 
         modIdentifier: args.modID,
         steamID32: GetSteamID32(),
         matchID: args.matchID,
@@ -13,12 +13,12 @@ function OnClientCheckIn (args) {
 
     $.AsyncWebRequest( 'http://getdotastats.com/s2/api/s2_check_in.php', 
     {
-        type: 'POST',
-        data: payload,
-        success: function( data )
-        {
+       type: 'POST',
+       data: {payload: JSON.stringify(payload)},
+       success: function( data )
+       {
             $.Msg('GDS Reply: ', data)
-        }
+       }
     });
 }
 
