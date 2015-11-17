@@ -418,7 +418,7 @@ function statCollection:sendStage3(winners, lastRound)
     end
 
     -- Build rounds table
-    local DOrounds = {}
+    local rounds = {}
     rounds[tostring(self.roundID)] = {
         players = players
     }
