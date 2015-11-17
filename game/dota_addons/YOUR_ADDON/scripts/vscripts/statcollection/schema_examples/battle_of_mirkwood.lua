@@ -5,7 +5,7 @@ function customSchema:init()
     -- Check the schema_examples folder for different implementations
 
     -- Flag Example
-     statCollection:setFlags({version = _G.AGS_VERSION})
+    -- statCollection:setFlags({version = GetVersion()})
 
     -- Listen for changes in the current state
     ListenToGameEvent('game_rules_state_change', function(keys)
@@ -22,12 +22,12 @@ function customSchema:init()
 
             -- Print the schema data to the console
             if statCollection.TESTING then
-                PrintSchema(game,players)
+                PrintSchema(game, players)
             end
 
             -- Send custom stats
             if statCollection.HAS_SCHEMA then
-                statCollection:sendCustom({game=game, players=players})
+                statCollection:sendCustom({ game = game, players = players })
             end
         end
     end, nil)
@@ -41,9 +41,13 @@ end
 -- Returns a table with our custom game tracking.
 function BuildGameArray()
     local game = {}
-    	game.len = GameRules:GetGameTime()
-			game.win = _G.GAME_WINNER_TEAM
+
     -- Add game values here as game.someValue = GetSomeGameValue()
+
+    -- team 1 score
+    game.s1 = GameRules.WAGameMode.vDeaths[DOTA_TEAM_BADGUYS] or 0
+    -- team 2 score
+    game.s2 = GameRules.WAGameMode.vDeaths[DOTA_TEAM_GOODGUYS] or 0
 
     return game
 end
@@ -56,30 +60,43 @@ function BuildPlayersArray()
             if not PlayerResource:IsBroadcaster(playerID) then
 
                 local hero = PlayerResource:GetSelectedHeroEntity(playerID)
-								local heroTeam = PlayerResource:GetTeam(playerID)
-								local heroTeamStr = ""
-								if heroTeam == 2 then
-									heroTeamStr = "Radiant"
-								elseif heroTeam == 3 then
-									heroTeamStr = "Dire"
-								end
-								
-                table.insert(players, {
+
+                local __stats__ = {
                     -- steamID32 required in here
                     steamID32 = PlayerResource:GetSteamAccountID(playerID),
 
                     -- Example functions for generic stats are defined in statcollection/lib/utilities.lua
                     -- Add player values here as someValue = GetSomePlayerValue(),
-										
-										nam= GetHeroName(playerID),	-- Hero by its short name
-										lvl = hero:GetLevel(),			-- Hero level at the end of the game
-										pnw = GetNetworth(hero),		-- Sum of hero gold and item worth
-										pt = heroTeamStr,				    -- Team this hero belongs to
-										pk = hero:GetKills(),			  -- Number of kills of this players hero
-										pa = hero:GetAssists(),			-- Number of deaths of this players hero
-										pd = hero:GetDeaths(),			-- Number of deaths of this players hero
-										pil = GetItemList(hero)			-- Item list
-                })
+
+                    -- player hero name
+                    hn = GetHeroName(playerID),
+                    -- kills
+                    hk = hero:GetKills(),
+                    -- deaths
+                    hd = hero:GetDeaths(),
+                    -- last hits/ creep kills
+                    lh = PlayerResource:GetLastHits(playerID),
+                    -- total gold earned
+                    xg = hero.xGoldEarned,
+                    -- abadon time
+                    at = GameRules.vDisconnectedHeroes[hero] or -1,
+                }
+
+
+                -- record abilities and ability level
+                local abilities = GetAbilityList(hero)
+                for i = 1, BOM_ABILITY_LIMIT do
+                    --[[
+                        = 
+                        a1 = "evasion,1"
+                        a2 = "life_steal,30"
+                        ...
+                        a7 = "xxx,15"
+                    ]]
+                    __stats__["a" .. i] = abilities[i] or "empty,-1"
+                end
+
+                table.insert(players, __stats__)
             end
         end
     end
@@ -88,7 +105,7 @@ function BuildPlayersArray()
 end
 
 -- Prints the custom schema, required to get an schemaID
-function PrintSchema( gameArray, playerArray )
+function PrintSchema(gameArray, playerArray)
     print("-------- GAME DATA --------")
     DeepPrintTable(gameArray)
     print("\n-------- PLAYER DATA --------")
@@ -98,7 +115,7 @@ end
 
 -- Write 'test_schema' on the console to test your current functions instead of having to end the game
 if Convars:GetBool('developer') then
-    Convars:RegisterCommand("test_schema", function() PrintSchema(BuildGameArray(),BuildPlayersArray()) end, "Test the custom schema arrays", 0)
+    Convars:RegisterCommand("test_schema", function() PrintSchema(BuildGameArray(), BuildPlayersArray()) end, "Test the custom schema arrays", 0)
 end
 
 -------------------------------------
@@ -112,10 +129,10 @@ function customSchema:submitRound(isLastRound)
     local game = BuildGameArray()
     local players = BuildPlayersArray()
 
-    statCollection:sendCustom({game=game, players=players})
+    statCollection:sendCustom({ game = game, players = players })
 
     isLastRound = isLastRound or false --If the function is passed with no parameter, default to false.
-    return {winners = winners, lastRound = isLastRound}
+    return { winners = winners, lastRound = isLastRound }
 end
 
 -- A list of players marking who won this round
@@ -132,4 +149,15 @@ function BuildRoundWinnerArray()
     return winners
 end
 
--------------------------------------
+---------------------------- Custom Stats------------------------
+function GetAbilityList(hero)
+    local abilities = {}
+    if hero.vAbilityLevel and type(hero.vAbilityLevel) == "table" then
+        for ability_name, ability_level in pairs(hero.vAbilityLevel) do
+            table.insert(abilities, ability_name .. "," .. ability_level)
+        end
+    end
+    return abilities
+end
+
+----------------------------End Custom Stats Functions----------
