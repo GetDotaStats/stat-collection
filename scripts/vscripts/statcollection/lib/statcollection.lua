@@ -156,7 +156,7 @@ function statCollection:hookFunctions()
     end
     
     --Wait for host before sending Phase 1
-    ListenToGameEvent('player_connect', function(keys)
+    ListenToGameEvent('player_connect_full', function(keys)
        
        -- Ensure we can only send it once, and everything is good to go
        if self.playerCheckStage1 then return end
