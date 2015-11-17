@@ -404,17 +404,19 @@ function statCollection:sendStage3(winners, lastRound)
 
     -- Print the intro message
     print(printPrefix .. messagePhase3Starting)
-
+    
     -- Build players array
     local players = {}
-    for i = 1, (PlayerResource:GetPlayerCount() or 1) do
-        local steamID = PlayerResource:GetSteamAccountID(i - 1)
-
-        table.insert(players, {
-            steamID32 = steamID,
-            connectionState = PlayerResource:GetConnectionState(i - 1),
-            isWinner = winners[PlayerResource:GetSteamAccountID(i - 1)]
-        })
+    for playerID = 0, DOTA_MAX_PLAYERS do
+        if PlayerResource:IsValidPlayerID(playerID) then
+           local steamID = PlayerResource:GetSteamAccountID(playerID)
+           
+           table.insert(players, {
+                steamID32 = steamID,
+                connectionState = PlayerResource:GetConnectionState(playerID),
+                isWinner = winners[steamID]
+            })
+        end
     end
 
     -- Build rounds table
