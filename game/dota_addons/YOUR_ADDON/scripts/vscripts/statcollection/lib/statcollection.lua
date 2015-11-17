@@ -271,7 +271,7 @@ function statCollection:sendStage1()
     statCollection:setFlags({ numPlayers = playerCount })
 
     -- Workout who is hosting
-    local hostID
+    local hostID = 0
     for playerID = 0, DOTA_MAX_PLAYERS do
         if PlayerResource:IsValidPlayerID(playerID) then
             local player = PlayerResource:GetPlayer(playerID)
