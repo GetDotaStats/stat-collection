@@ -119,9 +119,6 @@ function statCollection:init()
     
     -- Hook requred functions to operate correctly
     self:hookFunctions()
-
-    -- Send stage1 stuff
-    self:sendStage1()
 end
 
 --Build the winners array
@@ -157,6 +154,27 @@ function statCollection:hookFunctions()
             this:sendStage3(this:calcWinnersByTeam(), true)
         end
     end
+    
+    --Wait for host before sending Phase 1
+    ListenToGameEvent('player_connect', function(keys)
+       
+       -- Ensure we can only send it once, and everything is good to go
+       if self.playerCheckStage1 then return end
+       
+       -- Check each connected player to see if they are host
+       for playerID = 0, DOTA_MAX_PLAYERS do
+          if PlayerResource:IsValidPlayerID(playerID) then
+             local player = PlayerResource:GetPlayer(playerID)
+             
+             if GameRules:PlayerHasCustomGameHostPrivileges(player) then
+                self.playerCheckStage1 = true
+                -- Send stage1 stuff
+                self:sendStage1()
+                break
+             end
+          end
+       end
+    end, nil)
 
     -- Listen for changes in the current state
     ListenToGameEvent('game_rules_state_change', function(keys)
