@@ -123,10 +123,10 @@ end
 
 --Build the winners array
 function statCollection:calcWinnersByTeam()
-    output = {}
+    local output = {}
     local winningTeam = self.winner
 
-    for playerID = 0, DOTA_MAX_PLAYERS do
+    for playerID = 0, DOTA_MAX_TEAM_PLAYERS do
         if PlayerResource:IsValidPlayerID(playerID) then
             output[PlayerResource:GetSteamAccountID(playerID)] = PlayerResource:GetTeam(playerID) == winningTeam and '1' or '0'
         end
@@ -161,7 +161,7 @@ function statCollection:hookFunctions()
         if self.playerCheckStage1 then return end
 
         -- Check each connected player to see if they are host
-        for playerID = 0, DOTA_MAX_PLAYERS do
+        for playerID = 0, DOTA_MAX_TEAM_PLAYERS do
             if PlayerResource:IsValidPlayerID(playerID) then
                 local player = PlayerResource:GetPlayer(playerID)
 
@@ -272,7 +272,7 @@ function statCollection:sendStage1()
 
     -- Workout who is hosting
     local hostID = 0
-    for playerID = 0, DOTA_MAX_PLAYERS do
+    for playerID = 0, DOTA_MAX_TEAM_PLAYERS do
         if PlayerResource:IsValidPlayerID(playerID) then
             local player = PlayerResource:GetPlayer(playerID)
             if GameRules:PlayerHasCustomGameHostPrivileges(player) then
@@ -343,7 +343,7 @@ function statCollection:sendStage2()
 
     -- Build players array
     local players = {}
-    for playerID = 0, DOTA_MAX_PLAYERS do
+    for playerID = 0, DOTA_MAX_TEAM_PLAYERS do
         if PlayerResource:IsValidPlayerID(playerID) then
             table.insert(players, {
                 playerName = PlayerResource:GetPlayerName(playerID),
@@ -405,7 +405,7 @@ function statCollection:sendStage3(winners, lastRound)
 
     -- Build players array
     local players = {}
-    for playerID = 0, DOTA_MAX_PLAYERS do
+    for playerID = 0, DOTA_MAX_TEAM_PLAYERS do
         if PlayerResource:IsValidPlayerID(playerID) then
             local steamID = PlayerResource:GetSteamAccountID(playerID)
 
@@ -418,7 +418,7 @@ function statCollection:sendStage3(winners, lastRound)
     end
 
     -- Build rounds table
-    rounds = {}
+    local DOrounds = {}
     rounds[tostring(self.roundID)] = {
         players = players
     }
@@ -457,7 +457,7 @@ end
 
 function statCollection:submitRound(args)
     --We receive the winners from the custom schema, lets tell phase 3 about it!
-    returnArgs = customSchema:submitRound(args)
+    local returnArgs = customSchema:submitRound(args)
     self:sendStage3(returnArgs.winners, returnArgs.lastRound)
 end
 
@@ -493,7 +493,7 @@ function statCollection:sendCustom(args)
     print(printPrefix .. messageCustomStarting)
 
     -- Build rounds table
-    rounds = {}
+    local rounds = {}
     rounds[tostring(self.roundID)] = {
         game = game,
         players = players
