@@ -5,7 +5,7 @@ function customSchema:init()
     -- Check the schema_examples folder for different implementations
 
     -- Flag Example
-    statCollection:setFlags({version = GetVersion()})
+    statCollection:setFlags({ version = GetVersion() })
 
     -- Listen for changes in the current state
     ListenToGameEvent('game_rules_state_change', function(keys)
@@ -22,31 +22,29 @@ function customSchema:init()
 
             -- Print the schema data to the console
             if statCollection.TESTING then
-                PrintSchema(game,players)
+                PrintSchema(game, players)
             end
 
             -- Send custom stats
             if statCollection.HAS_SCHEMA then
-                statCollection:sendCustom({game=game, players=players})
+                statCollection:sendCustom({ game = game, players = players })
             end
         end
     end, nil)
 end
 
 -------------------------------------
-
 function customSchema:submitRound(args)
     winners = BuildRoundWinnerArray()
     game = BuildGameArray()
     players = BuildPlayersArray()
 
-    statCollection:sendCustom({game=game, players=players})
+    statCollection:sendCustom({ game = game, players = players })
 
-    return {winners = winners, lastRound = false}
+    return { winners = winners, lastRound = false }
 end
 
 -------------------------------------
-
 function BuildRoundWinnerArray()
     local winners = {}
     local current_winner_team = GameRules.Winner or 0
@@ -85,8 +83,8 @@ function BuildPlayersArray()
 
                     -- Example functions of generic stats (keep, delete or change any that you don't need)
                     ph = GetHeroName(playerID), --Hero by its short name
-                    lvl = hero:GetLevel(), -- Return the level of the hero
-                    pd = hero:GetDeaths(),  --Number of deaths of this players hero
+                    lvl = hero:GetLevel(), --Return the level of the hero
+                    pd = hero:GetDeaths(), --Number of deaths of this players hero
                     nt = GetNetworth(hero), --Sum of hero gold and item worth
 
                     -- Item List
@@ -95,19 +93,18 @@ function BuildPlayersArray()
                     -- Ability List
                     an1 = GetAbilityName(hero, 0), --ability 1 (name) -- shows us the total selection and winrate of each skill, broken into SB and Normal theme
                     al1 = GetAbilityNameLevel(hero, 0), --ability 1 (name + level) -- shows us the final level and its winrate of each skill, broken into SB and Normal theme
-                    
+
                     an2 = GetAbilityName(hero, 1), --ability 2 (name)
                     al2 = GetAbilityNameLevel(hero, 1), --ability 2 (name + level)
-                    
+
                     an3 = GetAbilityName(hero, 2), --ability 3 (name)
                     al3 = GetAbilityNameLevel(hero, 2), --ability 3 (name + level)
-                    
+
                     an4 = GetAbilityName(hero, 3), --ability 4 (name)
                     al4 = GetAbilityNameLevel(hero, 3), --ability 4 (name + level)
 
                     -- SNS Specific
-                    scr = hero.score, -- Save-to-death ratio
-
+                    scr = hero.score, --Save-to-death ratio
                 })
             end
         end
@@ -117,10 +114,9 @@ function BuildPlayersArray()
 end
 
 -------------------------------------
---          Stat Functions         --
+-- Stat Functions         --
 -------------------------------------
-
-function PrintSchema( gameArray, playerArray )
+function PrintSchema(gameArray, playerArray)
     print("-------- GAME DATA --------")
     DeepPrintTable(gameArray)
     print("\n-------- PLAYER DATA --------")
@@ -128,17 +124,17 @@ function PrintSchema( gameArray, playerArray )
     print("-------------------------------------")
 end
 
-function GetHeroName( playerID )
-    local heroName = PlayerResource:GetSelectedHeroName( playerID )
-    heroName = string.gsub(heroName,"npc_dota_hero_","") --Cuts the npc_dota_hero_ prefix
+function GetHeroName(playerID)
+    local heroName = PlayerResource:GetSelectedHeroName(playerID)
+    heroName = string.gsub(heroName, "npc_dota_hero_", "") --Cuts the npc_dota_hero_ prefix
     return heroName
 end
 
-function GetNetworth( hero )
+function GetNetworth(hero)
     local gold = hero:GetGold()
 
     -- Iterate over item slots adding up its gold cost
-    for i=0,15 do
+    for i = 0, 15 do
         local item = hero:GetItemInSlot(i)
         if item then
             gold = gold + item:GetCost()
@@ -160,7 +156,7 @@ end
 
 function GetItemList(hero)
     local itemTable = {}
-    for i=0,5 do
+    for i = 0, 5 do
         local item = hero:GetItemInSlot(i)
         if item then
             local itemName = string.gsub(item:GetAbilityName(), "item_", "")
@@ -172,7 +168,7 @@ function GetItemList(hero)
     return itemList
 end
 
-function GetAbilityName( hero, id )
+function GetAbilityName(hero, id)
     local ability = hero:GetAbilityByIndex(id)
     if ability then
         local abilityName = string.gsub(ability:GetAbilityName(), "antimage_", "") --remove unnecessary parts of string
@@ -182,15 +178,15 @@ function GetAbilityName( hero, id )
     return ""
 end
 
-function GetAbilityNameList( hero )
+function GetAbilityNameList(hero)
     local nameTable = {}
-    for i=0,3 do
+    for i = 0, 3 do
         table.insert(nameTable, GetAbilityName(hero, i))
     end
     return table.concat(nameTable, ",")
 end
 
-function GetAbilityLevel( hero, id )
+function GetAbilityLevel(hero, id)
     ability = hero:GetAbilityByIndex(id)
     if ability then
         return ability:GetLevel()
@@ -198,19 +194,19 @@ function GetAbilityLevel( hero, id )
     return 0
 end
 
-function GetAbilityLevelList( hero )
+function GetAbilityLevelList(hero)
     local nameTable = {}
-    for i=0,3 do
+    for i = 0, 3 do
         table.insert(nameTable, GetAbilityLevel(hero, i))
     end
     return table.concat(nameTable, ",")
 end
 
-function GetAbilityNameLevel( hero, id )
+function GetAbilityNameLevel(hero, id)
     return GetAbilityName(hero, id) .. "__" .. GetAbilityLevel(hero, id)
 end
 
-function GetTheme( )
+function GetTheme()
     local theme = GameMode.gameTheme
     if theme == 1 then
         return "Normal"

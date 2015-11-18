@@ -5,7 +5,7 @@ function customSchema:init()
     -- Check the schema_examples folder for different implementations
 
     -- Flag Example
-    -- statCollection:setFlags({version = GetVersion()})
+    statCollection:setFlags({ version = storage:GetVersion() })
 
     -- Listen for changes in the current state
     ListenToGameEvent('game_rules_state_change', function(keys)
@@ -22,12 +22,12 @@ function customSchema:init()
 
             -- Print the schema data to the console
             if statCollection.TESTING then
-                PrintSchema(game,players)
+                PrintSchema(game, players)
             end
 
             -- Send custom stats
             if statCollection.HAS_SCHEMA then
-                statCollection:sendCustom({game=game, players=players})
+                statCollection:sendCustom({ game = game, players = players })
             end
         end
     end, nil)
@@ -43,10 +43,10 @@ function BuildGameArray()
     local game = {}
 
     -- Add game values here as game.someValue = GetSomeGameValue()
-	game.eh=storage:GetEmpGoldHist()
-	game.wn=storage:getWinner()
-	--game.th=storage:GetTideKillers()
-	
+    game.eh = storage:GetEmpGoldHist() -- Team advantage history
+    game.wn = storage:getWinner() -- Team winner
+    --game.th=storage:GetTideKillers()
+
     return game
 end
 
@@ -58,16 +58,16 @@ function BuildPlayersArray()
             if not PlayerResource:IsBroadcaster(playerID) then
 
                 local hero = PlayerResource:GetSelectedHeroEntity(playerID)
-                
-                local teamname="North"
-                if hero:GetTeamNumber()==DOTA_TEAM_GOODGUYS then
-                	teamname="South"
+
+                local teamname = "North"
+                if hero:GetTeamNumber() == DOTA_TEAM_GOODGUYS then
+                    teamname = "South"
                 end
-				
-		local kickStatus="Active"
-		if storage:GetDisconnectState(playerID)~=0 then
-			kickStatus="Kicked"
-		end
+
+                local kickStatus = "Active"
+                if storage:GetDisconnectState(playerID) ~= 0 then
+                    kickStatus = "Kicked"
+                end
 
                 table.insert(players, {
                     -- steamID32 required in here
@@ -75,15 +75,15 @@ function BuildPlayersArray()
 
                     -- Example functions for generic stats are defined in statcollection/lib/utilities.lua
                     -- Add player values here as someValue = GetSomePlayerValue(),
-                    tm  = 	teamname,			--This hero's custom team name
-                    shp = 	storage:GetHeroName(playerID), 	--This hero's custom name
-                    kls = 	hero:GetKills(),   		--This hero's kills
-                    dth = 	hero:GetDeaths(),  		--This hero's deaths
-                    lvl = 	hero:GetLevel(),		--This hero's levels
-                    afk = 	kickStatus,			--This hero's custom connection status
-                    
+                    tm = teamname,
+                    shp = storage:GetHeroName(playerID), --Hero by its short name
+                    kls = hero:GetKills(), --Player Kills
+                    dth = hero:GetDeaths(), --Player Deaths
+                    lvl = hero:GetLevel(), --Player Levels
+                    afk = kickStatus, --Custom Player status
+
                     -- Item List
-                    bo=storage:GetPlayerHist(playerID),
+                    bo = storage:GetPlayerHist(playerID)
                 })
             end
         end
@@ -93,7 +93,7 @@ function BuildPlayersArray()
 end
 
 -- Prints the custom schema, required to get an schemaID
-function PrintSchema( gameArray, playerArray )
+function PrintSchema(gameArray, playerArray)
     print("-------- GAME DATA --------")
     DeepPrintTable(gameArray)
     print("\n-------- PLAYER DATA --------")
@@ -103,7 +103,7 @@ end
 
 -- Write 'test_schema' on the console to test your current functions instead of having to end the game
 if Convars:GetBool('developer') then
-    Convars:RegisterCommand("test_schema", function() PrintSchema(BuildGameArray(),BuildPlayersArray()) end, "Test the custom schema arrays", 0)
+    Convars:RegisterCommand("test_schema", function() PrintSchema(BuildGameArray(), BuildPlayersArray()) end, "Test the custom schema arrays", 0)
 end
 
 -------------------------------------
@@ -117,10 +117,10 @@ function customSchema:submitRound(isLastRound)
     local game = BuildGameArray()
     local players = BuildPlayersArray()
 
-    statCollection:sendCustom({game=game, players=players})
+    statCollection:sendCustom({ game = game, players = players })
 
     isLastRound = isLastRound or false --If the function is passed with no parameter, default to false.
-    return {winners = winners, lastRound = isLastRound}
+    return { winners = winners, lastRound = isLastRound }
 end
 
 -- A list of players marking who won this round
@@ -138,57 +138,3 @@ function BuildRoundWinnerArray()
 end
 
 -------------------------------------
---          My Custom Functions    --
--------------------------------------
-
-playerItemHist={}
-
-function storage:AddToPlayerItemHist(pid, ic)
-
-	if playerItemHist[pid]==nil then
-		 playerItemHist[pid]=""
-		 print("Created Array")
-	end
-	if ic~=nil then
-		if string.len(tostring(playerItemHist[pid]))<96 then
-		  playerItemHist[pid]=playerItemHist[pid] .. ic .. ","
-	  end
-	end
-end
-
-function storage:GetPlayerHist(playerID)
-	if playerItemHist[playerID] ~= nil then
-		return playerItemHist[playerID]
-	end
-	return "none"
-end
-
-DisconnectKicked={}
-
-function storage:GetDisconnectState(playerID)
-	print("getDisconnect")
-	for _,hero in pairs( Entities:FindAllByClassname( "npc_dota_hero*")) do
-			if hero ~= nil and hero:IsOwnedByAnyPlayer() then
-				if hero:GetPlayerID() == playerID then
-					if DisconnectKicked[hero]~= nil then
-						return DisconnectKicked[hero]
-						else
-						return 0
-					end
-					
-				end
-			end
-		end
-		return 0
-	end
-	
-	function storage:GetHeroName(playerID)
-    for _,hero in pairs( Entities:FindAllByClassname( "npc_dota_hero*")) do
-		if hero ~= nil and hero:IsOwnedByAnyPlayer() then
-			if hero:GetPlayerID() == playerID then
-				return name_lookup[hero:GetName()]
-			end
-		end
-	end
-	return "failed"
-end

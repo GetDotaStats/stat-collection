@@ -5,7 +5,7 @@ function customSchema:init()
     -- Check the schema_examples folder for different implementations
 
     -- Flag Example
-    -- statCollection:setFlags({version = GetVersion()})
+    statCollection:setFlags({ version = IMBA_VERSION })
 
     -- Listen for changes in the current state
     ListenToGameEvent('game_rules_state_change', function(keys)
@@ -22,12 +22,12 @@ function customSchema:init()
 
             -- Print the schema data to the console
             if statCollection.TESTING then
-                PrintSchema(game,players)
+                PrintSchema(game, players)
             end
 
             -- Send custom stats
             if statCollection.HAS_SCHEMA then
-                statCollection:sendCustom({game=game, players=players})
+                statCollection:sendCustom({ game = game, players = players })
             end
         end
     end, nil)
@@ -43,7 +43,8 @@ function BuildGameArray()
     local game = {}
 
     -- Add game values here as game.someValue = GetSomeGameValue()
-    game.r = Enfos.curRound
+    game.gl = GAME_TIME_ELAPSED -- Game length, from the horn sound, in seconds
+    game.wt = GAME_WINNER_TEAM -- Winning team
 
     return game
 end
@@ -57,24 +58,35 @@ function BuildPlayersArray()
 
                 local hero = PlayerResource:GetSelectedHeroEntity(playerID)
 
+                -- Team string logic
+                local player_team = ""
+                if hero:GetTeam() == DOTA_TEAM_GOODGUYS then
+                    player_team = "Radiant"
+                else
+                    player_team = "Dire"
+                end
+
                 table.insert(players, {
                     -- steamID32 required in here
                     steamID32 = PlayerResource:GetSteamAccountID(playerID),
 
                     -- Example functions for generic stats are defined in statcollection/lib/utilities.lua
                     -- Add player values here as someValue = GetSomePlayerValue(),
-                    hn = GetHeroName(playerID),                                             -- name
-                    hl = hero:GetLevel(),                                                   -- level
-                    hnw = GetNetworth(PlayerResource:GetSelectedHeroEntity(playerID)),      -- Networth
-                    pt = hero:GetTeam(),                                           -- Hero's team
-                    pcs = PlayerResource:GetConnectionState(playerID), -- Player connection state
-                    pk = hero:GetKills(),                                         -- Kills
-                    pa = hero:GetAssists(),                                     -- Assists
-                    pd = hero:GetDeaths(),                                       -- Deaths
-                    plh = PlayerResource:GetLastHits(hero:GetPlayerOwnerID()),    -- Last hits
-                    ph = PlayerResource:GetHealing(hero:GetPlayerOwnerID()),       -- Healing
-                    pgpm = math.floor(PlayerResource:GetGoldPerMin(hero:GetPlayerOwnerID())),        -- GPM
-                    il = GetItemList(hero)                                           -- Item list
+
+                    ph = GetHeroName(playerID), -- Hero by its short name
+                    pl = hero:GetLevel(), -- Hero level at the end of the game
+                    pnw = GetNetworth(hero), -- Sum of hero gold and item worth
+                    pbb = hero.buyback_count, -- Amount of buybacks performed during the game
+                    pt = player_team, -- Team this hero belongs to
+                    pk = hero:GetKills(), -- Number of kills of this players hero
+                    pa = hero:GetAssists(), -- Number of deaths of this players hero
+                    pd = hero:GetDeaths(), -- Number of deaths of this players hero
+                    i1 = GetItemSlotIMBA(hero, 0), -- Item Slot #1
+                    i2 = GetItemSlotIMBA(hero, 1), -- Item Slot #2
+                    i3 = GetItemSlotIMBA(hero, 2), -- Item Slot #3
+                    i4 = GetItemSlotIMBA(hero, 3), -- Item Slot #4
+                    i5 = GetItemSlotIMBA(hero, 4), -- Item Slot #5
+                    i6 = GetItemSlotIMBA(hero, 5), -- Item Slot #6
                 })
             end
         end
@@ -84,7 +96,7 @@ function BuildPlayersArray()
 end
 
 -- Prints the custom schema, required to get an schemaID
-function PrintSchema( gameArray, playerArray )
+function PrintSchema(gameArray, playerArray)
     print("-------- GAME DATA --------")
     DeepPrintTable(gameArray)
     print("\n-------- PLAYER DATA --------")
@@ -94,7 +106,7 @@ end
 
 -- Write 'test_schema' on the console to test your current functions instead of having to end the game
 if Convars:GetBool('developer') then
-    Convars:RegisterCommand("test_schema", function() PrintSchema(BuildGameArray(),BuildPlayersArray()) end, "Test the custom schema arrays", 0)
+    Convars:RegisterCommand("test_schema", function() PrintSchema(BuildGameArray(), BuildPlayersArray()) end, "Test the custom schema arrays", 0)
 end
 
 -------------------------------------
@@ -108,10 +120,10 @@ function customSchema:submitRound(isLastRound)
     local game = BuildGameArray()
     local players = BuildPlayersArray()
 
-    statCollection:sendCustom({game=game, players=players})
+    statCollection:sendCustom({ game = game, players = players })
 
     isLastRound = isLastRound or false --If the function is passed with no parameter, default to false.
-    return {winners = winners, lastRound = isLastRound}
+    return { winners = winners, lastRound = isLastRound }
 end
 
 -- A list of players marking who won this round
@@ -129,3 +141,40 @@ function BuildRoundWinnerArray()
 end
 
 -------------------------------------
+-- MY CUSTOM FUNCTIONS
+-------------------------------------
+function GetItemListImba(hero)
+    local itemTable = {}
+
+    for i = 0, 5 do
+        local item = hero:GetItemInSlot(i)
+        if item then
+            if string.find(item:GetAbilityName(), "imba") then
+                local itemName = string.gsub(item:GetAbilityName(), "item_imba_", "")
+                table.insert(itemTable, itemName)
+            else
+                local itemName = string.gsub(item:GetAbilityName(), "item_", "")
+                table.insert(itemTable, itemName)
+            end
+        end
+    end
+
+    table.sort(itemTable)
+    local itemList = table.concat(itemTable, ",")
+
+    return itemList
+end
+
+function GetItemSlotIMBA(hero, slot)
+    local item = hero:GetItemInSlot(slot)
+
+    if item then
+        if string.find(item:GetAbilityName(), "imba") then
+            local itemName = string.gsub(item:GetAbilityName(), "item_imba_", "")
+        else
+            local itemName = string.gsub(item:GetAbilityName(), "item_", "")
+        end
+    end
+
+    return itemName
+end
