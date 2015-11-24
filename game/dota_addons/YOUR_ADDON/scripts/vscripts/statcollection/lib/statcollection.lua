@@ -42,6 +42,7 @@ local errorInitCalledTwice = 'Please ensure you only make a single call to statC
 local errorJsonDecode = 'There was an issue decoding the JSON returned from the server, see below:'
 local errorSomethingWentWrong = 'The server said something went wrong, see below:'
 local errorRunInit = 'You need to call the init function before you can send stats!'
+local errorMissedStage1 = 'You need to call the sendStage1 function before you can continue!'
 local errorFlags = 'Flags needs to be a table!'
 local errorSchemaNotEnabled = 'Schema has not been enabled!!'
 local errorBadSchema = 'This schema doesn\'t exist!!'
@@ -155,25 +156,31 @@ function statCollection:hookFunctions()
         end
     end
 
-    --Wait for host before sending Phase 1
-    ListenToGameEvent('player_connect_full', function(keys)
-        -- Ensure we can only send it once, and everything is good to go
-        if self.playerCheckStage1 then return end
+    -- If we are testing (i.e. in workshop tools, don't wait for player connects to check)
+    if self.TESTING then
+        -- Send stage1 stuff
+        this:sendStage1()
+    else
+        --Wait for host before sending Phase 1
+        ListenToGameEvent('player_connect_full', function(keys)
+            -- Ensure we can only send it once, and everything is good to go
+            if self.playerCheckStage1 then return end
 
-        -- Check each connected player to see if they are host
-        for playerID = 0, DOTA_MAX_TEAM_PLAYERS do
-            if PlayerResource:IsValidPlayerID(playerID) then
-                local player = PlayerResource:GetPlayer(playerID)
+            -- Check each connected player to see if they are host
+            for playerID = 0, DOTA_MAX_TEAM_PLAYERS do
+                if PlayerResource:IsValidPlayerID(playerID) then
+                    local player = PlayerResource:GetPlayer(playerID)
 
-                if GameRules:PlayerHasCustomGameHostPrivileges(player) then
-                    self.playerCheckStage1 = true
-                    -- Send stage1 stuff
-                    self:sendStage1()
-                    break
+                    if GameRules:PlayerHasCustomGameHostPrivileges(player) then
+                        self.playerCheckStage1 = true
+                        -- Send stage1 stuff
+                        this:sendStage1()
+                        break
+                    end
                 end
             end
-        end
-    end, nil)
+        end, nil)
+    end
 
     -- Listen for changes in the current state
     ListenToGameEvent('game_rules_state_change', function(keys)
@@ -251,6 +258,7 @@ end
 function statCollection:sendStage1()
     -- If we are missing required parameters, then don't send
     if not self.doneInit then
+        print("sendStage1 ERROR")
         print(printPrefix .. errorRunInit)
         return
     end
@@ -326,8 +334,16 @@ end
 -- Sends stage2
 function statCollection:sendStage2()
     -- If we are missing required parameters, then don't send
-    if not self.doneInit or not self.authKey or not self.matchID then
+    if not self.doneInit then
+        print("sendStage2 ERROR")
         print(printPrefix .. errorRunInit)
+        return
+    end
+
+    -- If we are missing stage1 stuff, don't continue
+    if not self.authKey or not self.matchID then
+        print("sendStage2 ERROR")
+        print(printPrefix .. errorMissedStage1)
         return
     end
 
@@ -386,9 +402,16 @@ end
 -- Sends stage3
 function statCollection:sendStage3(winners, lastRound)
     -- If we are missing required parameters, then don't send
-    if not self.doneInit or not self.authKey or not self.matchID then
+    if not self.doneInit then
         print("sendStage3 ERROR")
         print(printPrefix .. errorRunInit)
+        return
+    end
+
+    -- If we are missing stage1 stuff, don't continue
+    if not self.authKey or not self.matchID then
+        print("sendStage3 ERROR")
+        print(printPrefix .. errorMissedStage1)
         return
     end
 
