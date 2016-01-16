@@ -1,4 +1,4 @@
---[[
+f--[[
 Integrating the library into your scripts
 
 1. Download the statcollection from github and merge the scripts folder into your game/YOUR_ADDON/ folder.
@@ -190,9 +190,6 @@ function statCollection:hookFunctions()
         if state == DOTA_GAMERULES_STATE_CUSTOM_GAME_SETUP then
             -- Load time flag
             statCollection:setFlags({ loadTime = math.floor(GameRules:GetGameTime()) })
-
-            -- Start the client checking recording
-            CustomUI:DynamicHud_Create(-1, "statcollection", "file://{resources}/layout/custom_game/statcollection.xml", nil)
 
         elseif state >= DOTA_GAMERULES_STATE_PRE_GAME then
             -- Send pregame stats
