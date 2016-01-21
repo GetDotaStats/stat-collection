@@ -1,4 +1,4 @@
-f--[[
+--[[
 Integrating the library into your scripts
 
 1. Download the statcollection from github and merge the scripts folder into your game/YOUR_ADDON/ folder.
