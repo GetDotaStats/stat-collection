@@ -194,7 +194,7 @@ function statCollection:hookFunctions()
             statCollection:setFlags({ loadTime = math.floor(GameRules:GetGameTime()) })
 
         elseif state >= DOTA_GAMERULES_STATE_PRE_GAME then
-            if self.OVERRIDE_AUTOMATIC_SEND_STAGE_2 then
+            if not self.OVERRIDE_AUTOMATIC_SEND_STAGE_2 then
                 -- Send pregame stats
                 this:sendStage2()
             end
