@@ -455,7 +455,7 @@ function statCollection:sendStage3(winners, lastRound)
         modIdentifier = self.modIdentifier,
         schemaVersion = schemaVersion,
         rounds = rounds,
-        gameDuration = GameRules:GetGameTime()
+        gameDuration = math.floor(GameRules:GetGameTime()+0.5)
     }
     if lastRound == false then
         payload.gameFinished = 0
