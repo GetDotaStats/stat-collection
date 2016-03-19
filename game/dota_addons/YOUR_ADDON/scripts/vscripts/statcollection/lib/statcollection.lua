@@ -256,7 +256,6 @@ function statCollection:sendStage1()
 
     -- Ensure we can only send it once, and everything is good to go
     if self.sentStage1 then return end
-    self.sentStage1 = true
 
     -- Print the intro message
     statCollection:print(messagePhase1Starting)
@@ -313,6 +312,8 @@ function statCollection:sendStage1()
             return
         end
 
+        self.sentStage1 = true
+
         -- Woot, store our vars
         this.authKey = res.authKey
         this.matchID = res.matchID
@@ -344,7 +345,6 @@ function statCollection:sendStage2()
 
     -- Ensure we can only send it once, and everything is good to go
     if self.sentStage2 then return end
-    self.sentStage2 = true
 
     -- Print the intro message
     statCollection:print(messagePhase2Starting)
@@ -389,6 +389,8 @@ function statCollection:sendStage2()
             return
         end
 
+        self.sentStage2 = true
+
         -- Tell the user
         statCollection:print(messagePhase2Complete)
     end)
@@ -422,7 +424,6 @@ function statCollection:sendStage3(winners, lastRound)
     -- Ensure we can only send it once, and everything is good to go
     if not self.HAS_ROUNDS then
         if self.sentStage3 then return end
-        self.sentStage3 = true
     else
         self.roundID = self.roundID + 1
     end
@@ -477,6 +478,10 @@ function statCollection:sendStage3(winners, lastRound)
             return
         end
 
+        if not self.HAS_ROUNDS then
+            self.sentStage3 = true
+        end
+
         -- Tell the user
         statCollection:print(messagePhase3Complete)
     end)
@@ -513,7 +518,6 @@ function statCollection:sendCustom(args)
     -- Ensure we can only send it once, and everything is good to go
     if self.HAS_ROUNDS == false then
         if self.sentCustom then return end
-        self.sentCustom = true
     end
 
     -- Print the intro message
@@ -549,6 +553,10 @@ function statCollection:sendCustom(args)
             statCollection:print(errorSomethingWentWrong)
             statCollection:print(res.error)
             return
+        end
+
+        if self.HAS_ROUNDS == false then
+            self.sentCustom = true
         end
 
         -- Tell the user
