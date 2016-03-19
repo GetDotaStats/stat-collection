@@ -14,7 +14,7 @@ statCollection:setFlags({FlagName = 'FlagValue'})
 Customising the stats beyond this will require talking to the GetDotaStats staff so a custom schema can be built for you.
 Extended functionality will be added as it is needed.
 
-Come bug us in our IRC channel or get in contact via the site chatbox. http://getdotastats.com/#contact
+Come bug us in our IRC channel #getdotastats at GameSurge.net
 ]]
 
 -- Require libs
@@ -236,7 +236,9 @@ function statCollection:setFlags(flags)
         -- Store the new flags
         for flagKey, flagValue in pairs(flags) do
             self.flags[flagKey] = flagValue
-            statCollection:print(messageFlagsSet .. " {" .. flagKey .. ":" .. tostring(flagValue) .. "}")
+            if self.TESTING then
+                statCollection:print(messageFlagsSet .. " {" .. flagKey .. ":" .. tostring(flagValue) .. "}")
+            end
         end
 
     else
@@ -299,47 +301,37 @@ function statCollection:sendStage1()
     -- Begin the initial request
     self:sendStage('s2_phase_1.php', payload, function(err, res)
         -- Check if we got an error
-        if err then
-            statCollection:print(errorJsonDecode)
-            statCollection:print(err)
+        if self:ReturnedErrors(err, res) then
             return
         end
-
-        -- Check for an error
-        if res.error then
-            statCollection:print(errorSomethingWentWrong)
-            statCollection:print(res.error)
-            return
-        end
-
-        self.sentStage1 = true
 
         -- Woot, store our vars
         this.authKey = res.authKey
         this.matchID = res.matchID
+
+        self.sentStage1 = true
 
         -- Tell the user
         statCollection:print(messagePhase1Complete)
         statCollection:print("Auth Key: ", self.authKey)
         statCollection:print("MatchID: ", self.matchID)
     end)
+
+    -- Custom staging
+    self:Stage1(payload)
 end
 
 -- Sends stage2
 function statCollection:sendStage2()
     -- If we are missing required parameters, then don't send
     if not self.doneInit then
-        statCollection:print("sendStage2 ERROR")
-        statCollection:print(errorRunInit)
+        statCollection:printError("sendStage2", errorRunInit)
         return
     end
 
     -- If we are missing stage1 stuff, don't continue
     if not self.authKey or not self.matchID then
-        statCollection:print("sendStage2 ERROR")
-        statCollection:print(errorMissedStage1)
-        statCollection:print("Auth Key: ", self.authKey)
-        statCollection:print("MatchID: ", self.matchID)
+        statCollection:printError("sendStage2", errorMissedStage1)
         return
     end
 
@@ -377,16 +369,7 @@ function statCollection:sendStage2()
     -- Send stage2
     self:sendStage('s2_phase_2.php', payload, function(err, res)
         -- Check if we got an error
-        if err then
-            statCollection:print(errorJsonDecode)
-            statCollection:print(err)
-            return
-        end
-
-        -- Check for an error
-        if res.error then
-            statCollection:print(errorSomethingWentWrong)
-            statCollection:print(res.error)
+        if self:ReturnedErrors(err, res) then
             return
         end
 
@@ -395,38 +378,35 @@ function statCollection:sendStage2()
         -- Tell the user
         statCollection:print(messagePhase2Complete)
     end)
+
+    -- Custom staging
+    self:Stage2(payload)
 end
 
 -- Sends stage3
 function statCollection:sendStage3(winners, lastRound)
     -- If we are missing required parameters, then don't send
     if not self.doneInit then
-        statCollection:print("sendStage3 ERROR")
-        statCollection:print(errorRunInit)
+        statCollection:printError("sendStage3", errorRunInit)
         return
     end
 
     -- If we are missing stage1 stuff, don't continue
     if not self.authKey or not self.matchID then
-        statCollection:print("sendStage3 ERROR")
-        statCollection:print(errorMissedStage1)
-        statCollection:print("Auth Key: ", self.authKey)
-        statCollection:print("MatchID: ", self.matchID)
+        statCollection:printError("sendStage3", errorMissedStage1)
         return
     end
 
     -- If we are missing stage2 stuff, don't continue
     if not self.sentStage2 then
-        statCollection:print("sendStage3 ERROR")
-        statCollection:print(errorMissedStage2)
-        statCollection:print("Auth Key: ", self.authKey)
-        statCollection:print("MatchID: ", self.matchID)
+        statCollection:printError("sendStage3", errorMissedStage2)
         return
     end
 
     -- Ensure we can only send it once, and everything is good to go
     if not self.HAS_ROUNDS then
         if self.sentStage3 then return end
+        self.sentStage3 = true
     else
         self.roundID = self.roundID + 1
     end
@@ -468,26 +448,16 @@ function statCollection:sendStage3(winners, lastRound)
     -- Send stage3
     self:sendStage('s2_phase_3.php', payload, function(err, res)
         -- Check if we got an error
-        if err then
-            statCollection:print(errorJsonDecode)
-            statCollection:print(err)
+        if self:ReturnedErrors(err, res) then
             return
-        end
-
-        -- Check for an error
-        if res.error then
-            statCollection:print(errorSomethingWentWrong)
-            statCollection:print(res.error)
-            return
-        end
-
-        if not self.HAS_ROUNDS then
-            self.sentStage3 = true
         end
 
         -- Tell the user
         statCollection:print(messagePhase3Complete)
     end)
+
+    -- Custom staging
+    self:Stage3(payload)
 end
 
 function statCollection:submitRound(args)
@@ -499,8 +469,7 @@ end
 -- Sends custom
 function statCollection:sendCustom(args)
     if not self.HAS_SCHEMA then
-        statCollection:print("sendCustom ERROR")
-        statCollection:print(errorDefaultSchemaIdentifier)
+        statCollection:print("sendCustom", errorDefaultSchemaIdentifier)
         return
     end
 
@@ -521,6 +490,7 @@ function statCollection:sendCustom(args)
     -- Ensure we can only send it once, and everything is good to go
     if self.HAS_ROUNDS == false then
         if self.sentCustom then return end
+        self.sentCustom = true
     end
 
     -- Print the intro message
@@ -545,32 +515,25 @@ function statCollection:sendCustom(args)
     -- Send custom
     self:sendStage('s2_custom.php', payload, function(err, res)
         -- Check if we got an error
-        if err then
-            statCollection:print(errorJsonDecode)
-            statCollection:print(err)
+        if self:ReturnedErrors(err, res) then
             return
-        end
-
-        -- Check for an error
-        if res.error then
-            statCollection:print(errorSomethingWentWrong)
-            statCollection:print(res.error)
-            return
-        end
-
-        if self.HAS_ROUNDS == false then
-            self.sentCustom = true
         end
 
         -- Tell the user
         statCollection:print(messageCustomComplete)
     end)
+
+    -- Custom staging
+    self:StageCustom(payload)
 end
 
 -- Sends the payload data for the given stage, and return the result
-function statCollection:sendStage(stageName, payload, callback)
+-- Optional override_host can be added to reutilize this function for other sites
+function statCollection:sendStage(stageName, payload, callback, override_host)
+    local host = override_host or postLocation
+
     -- Create the request
-    local req = CreateHTTPRequest('POST', postLocation .. stageName)
+    local req = CreateHTTPRequest('POST', host .. stageName)
     local encoded = json.encode(payload)
     if self.TESTING then
         statCollection:print(encoded)
@@ -592,6 +555,31 @@ function statCollection:sendStage(stageName, payload, callback)
         -- Feed the result into our callback
         callback(err, obj)
     end)
+end
+
+-- Checks the error and result objects and returns whether its invalid or not
+function statCollection:ReturnedErrors(err, res)
+    if err then
+        statCollection:print(errorJsonDecode)
+        statCollection:print(err)
+        return true
+    end
+
+    if res.error then
+        statCollection:print(errorSomethingWentWrong)
+        statCollection:print(res.error)
+        return true
+    end
+
+    -- no errors
+    return false
+end
+
+function statCollection:printError(where, msg)
+    statCollection:print("ERROR at "..where)
+    statCollection:print(msg)
+    statCollection:print("Auth Key: ", self.authKey)
+    statCollection:print("MatchID: ", self.matchID)
 end
 
 function statCollection:print(s1, s2)
