@@ -370,6 +370,7 @@ function statCollection:sendStage2()
         modIdentifier = self.modIdentifier,
         flags = self.flags,
         schemaVersion = schemaVersion,
+        dotaMatchID = GameRules:GetMatchID(),
         players = players
     }
 
@@ -409,6 +410,8 @@ function statCollection:sendStage3(winners, lastRound)
     if not self.authKey or not self.matchID then
         statCollection:print("sendStage3 ERROR")
         statCollection:print(errorMissedStage1)
+        statCollection:print("Auth Key: ", self.authKey)
+        statCollection:print("MatchID: ", self.matchID)
         return
     end
 
