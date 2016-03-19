@@ -183,7 +183,7 @@ function statCollection:hookFunctions()
             -- Load time flag
             statCollection:setFlags({ loadTime = math.floor(GameRules:GetGameTime()+0.5) })
 
-        elseif state >= DOTA_GAMERULES_STATE_PRE_GAME then
+        elseif state == DOTA_GAMERULES_STATE_PRE_GAME then
             if not self.OVERRIDE_AUTOMATIC_SEND_STAGE_2 then
                 -- Send pregame stats
                 this:sendStage2()
@@ -572,7 +572,9 @@ function statCollection:sendStage(stageName, payload, callback)
     -- Create the request
     local req = CreateHTTPRequest('POST', postLocation .. stageName)
     local encoded = json.encode(payload)
-    --print(encoded)
+    if self.TESTING then
+        statCollection:print(encoded)
+    end
 
     -- Add the data
     req:SetHTTPRequestGetOrPostParameter('payload', encoded)
