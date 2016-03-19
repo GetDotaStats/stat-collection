@@ -25,7 +25,7 @@ require('statcollection/schema')
 local statInfo = LoadKeyValues('scripts/vscripts/statcollection/settings.kv')
 
 -- Where stuff is posted to
-local postLocation = 'http://getdotastats.com/s2/api/'
+local postLocation = 'https://api.getdotastats.com/'
 
 -- The schema version we are currently using
 local schemaVersion = 4
@@ -181,7 +181,7 @@ function statCollection:hookFunctions()
 
         if state == DOTA_GAMERULES_STATE_CUSTOM_GAME_SETUP then
             -- Load time flag
-            statCollection:setFlags({ loadTime = math.floor(GameRules:GetGameTime()) })
+            statCollection:setFlags({ loadTime = math.floor(GameRules:GetGameTime()+0.5) })
 
         elseif state >= DOTA_GAMERULES_STATE_PRE_GAME then
             if not self.OVERRIDE_AUTOMATIC_SEND_STAGE_2 then
@@ -370,7 +370,7 @@ function statCollection:sendStage2()
         modIdentifier = self.modIdentifier,
         flags = self.flags,
         schemaVersion = schemaVersion,
-        dotaMatchID = GameRules:GetMatchID(),
+        dotaMatchID = tostring(GameRules:GetMatchID()),
         players = players
     }
 
@@ -571,9 +571,11 @@ end
 function statCollection:sendStage(stageName, payload, callback)
     -- Create the request
     local req = CreateHTTPRequest('POST', postLocation .. stageName)
-    --print(json.encode(payload))
+    local encoded = json.encode(payload)
+    --print(encoded)
+
     -- Add the data
-    req:SetHTTPRequestGetOrPostParameter('payload', json.encode(payload))
+    req:SetHTTPRequestGetOrPostParameter('payload', encoded)
 
     -- Send the request
     req:Send(function(res)
@@ -612,5 +614,5 @@ function statCollection:print(s1, s2)
 end
 
 function tobool(s)
-    return s == true or s == "true" or s == "1" or s == 1 then
+    return s == true or s == "true" or s == "1" or s == 1
 end
