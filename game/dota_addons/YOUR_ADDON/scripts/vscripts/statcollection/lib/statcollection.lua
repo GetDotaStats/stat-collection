@@ -28,7 +28,7 @@ local statInfo = LoadKeyValues('scripts/vscripts/statcollection/settings.kv')
 local postLocation = 'https://api.getdotastats.com/'
 
 -- The schema version we are currently using
-local schemaVersion = 4
+local schemaVersion = 5
 
 -- Constants used for pretty formatting, as well as strings
 local printPrefix = 'Stat Collection: '
@@ -242,11 +242,6 @@ function statCollection:sendStage1()
     -- Grab a reference to self
     local this = self
 
-    -- Workout the player count
-    local playerCount = PlayerResource:GetPlayerCount()
-    if playerCount <= 0 then playerCount = 1 end
-    statCollection:setFlags({ numPlayers = playerCount })
-
     -- Workout who is hosting
     local hostID = 0
     for playerID = 0, DOTA_MAX_TEAM_PLAYERS do
@@ -325,6 +320,11 @@ function statCollection:sendStage2()
     if IsDedicatedServer() then
         self:sendHostCheckIn()
     end
+
+    -- Save the player count
+    local playerCount = PlayerResource:GetPlayerCount()
+    if playerCount <= 0 then playerCount = 1 end
+    statCollection:setFlags({ numPlayers = playerCount })
 
     -- Build players array
     local players = {}
@@ -515,7 +515,7 @@ function statCollection:sendHostCheckIn()
         steamID32 = "-1",
         isHost = "1", 
         matchID = self.matchID,
-        schemaVersion: schemaVersion,
+        schemaVersion = schemaVersion,
     }
 
     -- Send check in
