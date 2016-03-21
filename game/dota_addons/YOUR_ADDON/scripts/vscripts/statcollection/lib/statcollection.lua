@@ -321,6 +321,11 @@ function statCollection:sendStage2()
     -- Client check in
     CustomGameEventManager:Send_ServerToAllClients("statcollection_client", { modID = self.modIdentifier, matchID = self.matchID, schemaVersion = schemaVersion })
 
+    -- Dedicated server check in
+    if IsDedicatedServer() then
+        self:sendHostCheckIn()
+    end
+
     -- Build players array
     local players = {}
     for playerID = 0, DOTA_MAX_TEAM_PLAYERS do
@@ -502,6 +507,25 @@ function statCollection:sendCustom(args)
 
     -- Custom staging
     self:StageCustom(payload)
+end
+
+function statCollection:sendHostCheckIn()
+    local payload = {
+        modIdentifier = self.modIdentifier,
+        steamID32 = "-1",
+        isHost = "1", 
+        matchID = self.matchID,
+        schemaVersion: schemaVersion,
+    }
+
+    -- Send check in
+    self:sendStage('s2_check_in.php', payload, function(err, res)
+        -- Check if we got an error
+        if self:ReturnedErrors(err, res) then
+            statCollection:printError("sendHostCheckIn", "Dedicated server check-in failed!")
+            return
+        end
+    end)
 end
 
 -- Sends the payload data for the given stage, and return the result
