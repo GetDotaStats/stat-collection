@@ -13,12 +13,11 @@ function OnClientCheckIn(args) {
         isHost: hostInfo, 
         matchID: args.matchID,
         schemaVersion: args.schemaVersion
-
     };
 
     $.Msg('Sending: ', payload);
 
-    $.AsyncWebRequest('http://getdotastats.com/s2/api/s2_check_in.php',
+    $.AsyncWebRequest('https://api.getdotastats.com/s2_check_in.php',
         {
             type: 'POST',
             data: {payload: JSON.stringify(payload)},
