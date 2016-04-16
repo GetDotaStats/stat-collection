@@ -107,8 +107,8 @@ function statCollection:init()
     -- Set the default winner to -1 (no winner)
     self.winner = -1
 
-    --Store roundID globally
-    self.roundID = 0
+    -- Set round to -1 (not finished)
+    self.roundID = -1
 
     -- Hook requred functions to operate correctly
     self:hookFunctions()
@@ -389,9 +389,9 @@ function statCollection:sendStage3(winners, lastRound)
     if not self.HAS_ROUNDS then
         if self.sentStage3 then return end
         self.sentStage3 = true
-    else
-        self.roundID = self.roundID + 1
     end
+
+    self.roundID = self.roundID + 1
 
     -- Print the intro message
     statCollection:print(messagePhase3Starting)
@@ -442,10 +442,10 @@ function statCollection:sendStage3(winners, lastRound)
     self:Stage3(payload)
 end
 
-function statCollection:submitRound(args)
+function statCollection:submitRound(lastRound)
     --We receive the winners from the custom schema, lets tell phase 3 about it!
-    local returnArgs = customSchema:submitRound(args)
-    self:sendStage3(returnArgs.winners, returnArgs.lastRound)
+    self:sendStage3(BuildRoundWinnerArray(), lastRound)
+    customSchema:submitRound()
 end
 
 -- Sends custom
@@ -547,6 +547,8 @@ function statCollection:sendStage(stageName, payload, callback, override_host)
     req:Send(function(res)
         if res.StatusCode ~= 200 or not res.Body then
             statCollection:print(errorFailedToContactServer)
+            statCollection:print("Status Code", res.StatusCode or "nil")
+            statCollection:print("Body", res.StatusCode or "nil")
             return
         end
 
